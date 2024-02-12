@@ -1,8 +1,9 @@
 package PixelTravler
 
 import "core:fmt"
-import "core:math/linalg"
 import "vendor:sdl2"
+import "core:math/rand"
+import "core:math/linalg"
 
 /*
     Maxwell's Daemon, in Gnipahellir's depths, plays a cunning game,
@@ -83,34 +84,69 @@ main :: proc() {
 		time     = get_time(),
 		dt       = ticktime,	
 	}
-	
-    cell_grid:= make([dynamic][dynamic]Cell, 100, 100)
-		
-    dyn := make([dynamic]Cell)
 
 	fmt.println("screen_width: ", WINDOW_WIDTH)
 	fmt.println("screen_height: ", WINDOW_HEIGHT)
 	fmt.println("cell_size: ", CELL_SIZE)
 	fmt.println("-----------------------------------------")
 	event : sdl2.Event
+
+	// lets paint a yellow cell
+	cell := new(Cell)
+	cell.color = Vec4{255, 255, 0, 255}
+	cell.is_alive = true
+	cell.x = WINDOW_WIDTH / 2 - (CELL_SIZE / 2)
+	cell.y = WINDOW_HEIGHT / 2 - (CELL_SIZE / 2)
 	
+	// add the cell to the grid
+	grid[cell.x / CELL_SIZE][cell.y / CELL_SIZE] = cell
+	
+	game_counter := 0
+
 	game_loop : for {
-				// lets paint a yellow cell
-		cell := new(Cell)
-		cell.color = Vec4{255, 255, 0, 255}
-		cell.is_alive = true
-		cell.x = WINDOW_WIDTH / 2 - (CELL_SIZE / 2)
-		cell.y = WINDOW_HEIGHT / 2 - (CELL_SIZE / 2)
+		game_counter += 1
+	
+		if(cell.y > WINDOW_HEIGHT) {
+			cell.y = 0 - CELL_SIZE
+		}
+		if cell.y < 0 - CELL_SIZE{
+			cell.y = WINDOW_HEIGHT			
+		}
 
-		// add the cell to the grid
-		grid[cell.x / CELL_SIZE][cell.y / CELL_SIZE] = cell
+		if(cell.x > WINDOW_WIDTH) {
+			cell.x = 0 - CELL_SIZE
+		}
 
+		if cell.x < 0 - CELL_SIZE{
+			cell.x = WINDOW_WIDTH
+		}
+		
         // Drawing gradient from black to grey
         for x :i32= 0; x < WINDOW_WIDTH; x += 1 {
             fade := u8(f32(x) / f32(WINDOW_WIDTH) * 60)
             sdl2.SetRenderDrawColor(game.renderer, fade, fade, fade, 255)
             sdl2.RenderDrawLine(game.renderer, x, 0, x, WINDOW_HEIGHT)
-        } 
+        } 		
+
+		if game_counter % 10 == 0 {		
+
+			r := rand.int_max(4)
+			if r == 0 {
+				cell.x += 1
+			} 
+			
+			if r == 1 {
+				cell.y -= 1
+			}   
+			
+			if r == 2 {
+				cell.x -= 1
+			}
+
+			if r == 3 {
+				cell.y += 1
+			}
+		}
 
 		rect := sdl2.Rect{
 			x = cell.x,
