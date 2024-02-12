@@ -4,11 +4,19 @@ import "core:fmt"
 import "core:math/linalg"
 import "vendor:sdl2"
 
+/*
+    Maxwell's Daemon, in Gnipahellir's depths, plays a cunning game,
+    With points of memory as his pawns, in entropy's endless frame.
+    Garm, the guardian fierce at Gnipahellir's gate, snarls at each move,
+    Yet the Daemon defies, weaving past and present, in Gnipahellir's groove.
+
+    Those who dare to fail miserably can achieve greatly
+*/
+
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 320
-GRID_STATE :: [dynamic][dynamic]Cell
+GRID_SIZE :: 64
+GRID_STATE :: [GRID_SIZE][GRID_SIZE]Cell
 CELL_SIZE :: 5
-NUM_CELLS_X :: WINDOW_WIDTH / CELL_SIZE
-NUM_CELLS_Y :: WINDOW_HEIGHT / CELL_SIZE
 
 Game :: struct {
 	renderer: ^sdl2.Renderer,
@@ -25,8 +33,8 @@ Vec4 :: struct {
 }
 
 Cell :: struct {
-	x: i32,
-    y: i32,
+	x: int,
+    y: int,
     is_alive: bool,
 	color: Vec4,
 	life: bool,	
@@ -43,6 +51,18 @@ get_time :: proc() -> f64 {
 }
 
 main :: proc() {
+
+
+    fmt.println("-----------------------------------------")
+
+    // Create a 64x64 grid of boolean values
+    grid := GRID_STATE{}
+    for i := 0; i < GRID_SIZE; i = i + 1 {
+        for j := 0; j < GRID_SIZE; j = j + 1 {
+            grid[i][j] = Cell{i, j, false, Vec4{0, 0, 0, 0}, false, 0.0, []byte{}, nil, nil}
+        }
+    }
+
 	assert(sdl2.Init(sdl2.INIT_VIDEO) == 0, sdl2.GetErrorString())
 	defer sdl2.Quit()
 
@@ -78,24 +98,36 @@ main :: proc() {
 	fmt.println("screen_width: ", WINDOW_WIDTH)
 	fmt.println("screen_height: ", WINDOW_HEIGHT)
 	fmt.println("cell_size: ", CELL_SIZE)
-	fmt.println("num_cells_x: ", NUM_CELLS_X)
-	fmt.println("num_cells_y: ", NUM_CELLS_Y)
-
-	// Calculate middle cell coordinates
-	middle_x := NUM_CELLS_X / 2
-	middle_y := NUM_CELLS_Y / 2
 
 
 	
 	game_loop : for {
 
         fmt.println("tick")
-		// we need to draw the pixels by 1 * CELL_SIZE
+		// lets paint a fluresent green cell
+		grid[32][32].color = Vec4{255, 255, 0, 255}
+		grid[32][32].is_alive = true
 
-		//the game loop updates a freaking lot so lets some % modulo to update the cells every 60th frame or so, oh and lets add pluss and minus for update speed
-		//also lets add a pause button 'space' and a clear button 'c'
+        // Drawing gradient from black to grey
+        for x :i32= 0; x < WINDOW_WIDTH; x += 1 {
+            fade := u8(f32(x) / f32(WINDOW_WIDTH) * 60)
+            sdl2.SetRenderDrawColor(game.renderer, fade, fade, fade, 255)
+            sdl2.RenderDrawLine(game.renderer, x, 0, x, WINDOW_HEIGHT)
+        } 
 
+		rect := sdl2.Rect{
+			x = WINDOW_WIDTH / 2 - (CELL_SIZE / 2),
+			y = WINDOW_HEIGHT / 2 - (CELL_SIZE / 2),
+	
+			w = CELL_SIZE,
+			h = CELL_SIZE,
+		}
 
+		cell := grid[32][32]
+
+		sdl2.SetRenderDrawColor(renderer, cell.color.r, cell.color.g, cell.color.b, cell.color.a) 
+		sdl2.RenderFillRect(renderer, &rect)
+		 
 		sdl2.RenderPresent(renderer)
 	}
 }
