@@ -15,8 +15,8 @@ import "vendor:sdl2"
 
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 320
 GRID_SIZE :: 64
-GRID_STATE :: [GRID_SIZE][GRID_SIZE]Cell
-CELL_SIZE :: 5
+GRID_STATE :: [GRID_SIZE][GRID_SIZE]^Cell
+CELL_SIZE :: 10
 
 Game :: struct {
 	renderer: ^sdl2.Renderer,
@@ -33,13 +33,12 @@ Vec4 :: struct {
 }
 
 Cell :: struct {
-	x: int,
-    y: int,
+	x: i32,
+    y: i32,
     is_alive: bool,
 	color: Vec4,
-	life: bool,	
 	bias: f64,
-	dna: []byte,
+	dna: [30]byte,
 	parent1: ^Cell, // Pointer to first parent cell
 	parent2: ^Cell, // Pointer to second parent cell
 }
@@ -52,16 +51,10 @@ get_time :: proc() -> f64 {
 
 main :: proc() {
 
-
     fmt.println("-----------------------------------------")
 
     // Create a 64x64 grid of boolean values
     grid := GRID_STATE{}
-    for i := 0; i < GRID_SIZE; i = i + 1 {
-        for j := 0; j < GRID_SIZE; j = j + 1 {
-            grid[i][j] = Cell{i, j, false, Vec4{0, 0, 0, 0}, false, 0.0, []byte{}, nil, nil}
-        }
-    }
 
 	assert(sdl2.Init(sdl2.INIT_VIDEO) == 0, sdl2.GetErrorString())
 	defer sdl2.Quit()
@@ -93,20 +86,24 @@ main :: proc() {
 	
     cell_grid:= make([dynamic][dynamic]Cell, 100, 100)
 		
-    dyn := make([dynamic]int, 5, 5)
+    dyn := make([dynamic]Cell)
 
 	fmt.println("screen_width: ", WINDOW_WIDTH)
 	fmt.println("screen_height: ", WINDOW_HEIGHT)
 	fmt.println("cell_size: ", CELL_SIZE)
-
-
+	fmt.println("-----------------------------------------")
+	event : sdl2.Event
 	
 	game_loop : for {
+				// lets paint a yellow cell
+		cell := new(Cell)
+		cell.color = Vec4{255, 255, 0, 255}
+		cell.is_alive = true
+		cell.x = WINDOW_WIDTH / 2 - (CELL_SIZE / 2)
+		cell.y = WINDOW_HEIGHT / 2 - (CELL_SIZE / 2)
 
-        fmt.println("tick")
-		// lets paint a fluresent green cell
-		grid[32][32].color = Vec4{255, 255, 0, 255}
-		grid[32][32].is_alive = true
+		// add the cell to the grid
+		grid[cell.x / CELL_SIZE][cell.y / CELL_SIZE] = cell
 
         // Drawing gradient from black to grey
         for x :i32= 0; x < WINDOW_WIDTH; x += 1 {
@@ -116,18 +113,42 @@ main :: proc() {
         } 
 
 		rect := sdl2.Rect{
-			x = WINDOW_WIDTH / 2 - (CELL_SIZE / 2),
-			y = WINDOW_HEIGHT / 2 - (CELL_SIZE / 2),
-	
+			x = cell.x,
+			y = cell.y,	
 			w = CELL_SIZE,
 			h = CELL_SIZE,
-		}
+		}	
 
-		cell := grid[32][32]
-
-		sdl2.SetRenderDrawColor(renderer, cell.color.r, cell.color.g, cell.color.b, cell.color.a) 
-		sdl2.RenderFillRect(renderer, &rect)
+		sdl2.SetRenderDrawColor(game.renderer, cell.color.r, cell.color.g, cell.color.b, cell.color.a) 
+		sdl2.RenderFillRect(game.renderer, &rect)
 		 
-		sdl2.RenderPresent(renderer)
+		sdl2.RenderPresent(game.renderer)
+
+		if sdl2.PollEvent(&event) {
+            if event.type == sdl2.EventType.QUIT {
+                break game_loop
+            }
+
+            // Handle Keyboard Input
+            if event.type == sdl2.EventType.KEYDOWN {
+                #partial switch event.key.keysym.scancode {
+                    case .ESCAPE:
+                        break game_loop 
+				}
+					
+				if sdl2.PollEvent(&event) {
+					if event.type == sdl2.EventType.QUIT {
+						break game_loop
+					}
+		
+					// Handle Keyboard Input
+					if event.type == sdl2.EventType.KEYDOWN {
+						#partial switch event.key.keysym.scancode {
+							case .ESCAPE:
+								break game_loop  }
+					}
+				}
+			}
+		}
 	}
 }
