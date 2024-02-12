@@ -105,28 +105,11 @@ main :: proc() {
 
 	game_loop : for {
 		game_counter += 1
-	
-		if(cell.y > WINDOW_HEIGHT) {
-			cell.y = 0 - CELL_SIZE
-		}
-		if cell.y < 0 - CELL_SIZE{
-			cell.y = WINDOW_HEIGHT			
-		}
-
-		if(cell.x > WINDOW_WIDTH) {
-			cell.x = 0 - CELL_SIZE
-		}
-
-		if cell.x < 0 - CELL_SIZE{
-			cell.x = WINDOW_WIDTH
-		}
 		
+		wrap_cell_position(cell)
+
         // Drawing gradient from black to grey
-        for x :i32= 0; x < WINDOW_WIDTH; x += 1 {
-            fade := u8(f32(x) / f32(WINDOW_WIDTH) * 60)
-            sdl2.SetRenderDrawColor(game.renderer, fade, fade, fade, 255)
-            sdl2.RenderDrawLine(game.renderer, x, 0, x, WINDOW_HEIGHT)
-        } 		
+        draw_gradient(game.renderer)
 
 		if game_counter % 10 == 0 {		
 
@@ -188,3 +171,29 @@ main :: proc() {
 		}
 	}
 }
+
+wrap_cell_position :: proc(cell: ^Cell) {
+	if cell.y > WINDOW_HEIGHT {
+		cell.y = 0 - CELL_SIZE
+	}
+	if cell.y < 0 - CELL_SIZE {
+		cell.y = WINDOW_HEIGHT
+	}
+
+	if cell.x > WINDOW_WIDTH {
+		cell.x = 0 - CELL_SIZE
+	}
+
+	if cell.x < 0 - CELL_SIZE {
+		cell.x = WINDOW_WIDTH
+	}
+}
+
+draw_gradient :: proc(renderer: ^sdl2.Renderer) {
+	for x : i32 = 0; x < WINDOW_WIDTH; x += 1 {
+		fade := u8(f32(x) / f32(WINDOW_WIDTH) * 60)
+		sdl2.SetRenderDrawColor(renderer, fade, fade, fade, 255)
+		sdl2.RenderDrawLine(renderer, x, 0, x, WINDOW_HEIGHT)
+	}
+}
+
