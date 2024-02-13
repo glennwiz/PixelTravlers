@@ -15,8 +15,6 @@ import "core:math/linalg"
 */
 
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 320
-GRID_SIZE :: 64
-GRID_STATE :: [GRID_SIZE][GRID_SIZE]^Cell
 CELL_SIZE :: 10
 
 Game :: struct {
@@ -36,15 +34,17 @@ Vec4 :: struct {
 Cell :: struct {
 	x: i32,
     y: i32,
+	past_x: i32,
+	past_y: i32,
     is_alive: bool,
 	color: Vec4,
-	bias: f64,
-	dna: [30]byte,
+	bias: f64,	
 	parent1: ^Cell, // Pointer to first parent cell
 	parent2: ^Cell, // Pointer to second parent cell
+	dna: [8]byte,  //dna :8 used atm: [4 byte RGB, 1 byte movement bias, 1byte mutation bias, 1byte mutation rate, 1byte repoduction rate, 1byte life span]
 }
 
-zoom_level :i32 = 20
+cell_array := make([dynamic]^Cell)
 
 get_time :: proc() -> f64 {
 	return f64(sdl2.GetPerformanceCounter()) * 1000 / f64(sdl2.GetPerformanceFrequency())
@@ -52,10 +52,7 @@ get_time :: proc() -> f64 {
 
 main :: proc() {
 
-    fmt.println("-----------------------------------------")
-
-    // Create a 64x64 grid of boolean values
-    grid := GRID_STATE{}
+    fmt.println("s-----------------------------------------")
 
 	assert(sdl2.Init(sdl2.INIT_VIDEO) == 0, sdl2.GetErrorString())
 	defer sdl2.Quit()
@@ -88,7 +85,9 @@ main :: proc() {
 	fmt.println("screen_width: ", WINDOW_WIDTH)
 	fmt.println("screen_height: ", WINDOW_HEIGHT)
 	fmt.println("cell_size: ", CELL_SIZE)
-	fmt.println("-----------------------------------------")
+	fmt.println("tickrate: ", tickrate)
+	fmt.println("ticktime: ", ticktime)
+	fmt.println("e-----------------------------------------")
 	event : sdl2.Event
 
 	// lets paint a yellow cell
@@ -98,47 +97,49 @@ main :: proc() {
 	cell.x = WINDOW_WIDTH / 2 - (CELL_SIZE / 2)
 	cell.y = WINDOW_HEIGHT / 2 - (CELL_SIZE / 2)
 	
-	// add the cell to the grid
-	grid[cell.x / CELL_SIZE][cell.y / CELL_SIZE] = cell
-	
+	defer delete(cell_array)
+	append(&cell_array, cell)
+
 	game_counter := 0
 
 	game_loop : for {
 		game_counter += 1
 		
-		wrap_cell_position(cell)
+		//get the first cell in the array
+		c := cell_array[0]
+
+		wrap_cell_position(c)
 
         // Drawing gradient from black to grey
         draw_gradient(game.renderer)
 
-		if game_counter % 10 == 0 {		
-
+		if game_counter % 10 == 0 {
 			r := rand.int_max(4)
 			if r == 0 {
-				cell.x += 1
+				c.x += 1
 			} 
 			
 			if r == 1 {
-				cell.y -= 1
+				c.y -= 1
 			}   
 			
 			if r == 2 {
-				cell.x -= 1
+				c.x -= 1
 			}
 
 			if r == 3 {
-				cell.y += 1
+				c.y += 1
 			}
 		}
 
 		rect := sdl2.Rect{
-			x = cell.x,
-			y = cell.y,	
+			x = c.x,
+			y = c.y,	
 			w = CELL_SIZE,
 			h = CELL_SIZE,
 		}	
 
-		sdl2.SetRenderDrawColor(game.renderer, cell.color.r, cell.color.g, cell.color.b, cell.color.a) 
+		sdl2.SetRenderDrawColor(game.renderer, c.color.r, c.color.g, c.color.b, c.color.a) 
 		sdl2.RenderFillRect(game.renderer, &rect)
 		 
 		sdl2.RenderPresent(game.renderer)
@@ -196,4 +197,3 @@ draw_gradient :: proc(renderer: ^sdl2.Renderer) {
 		sdl2.RenderDrawLine(renderer, x, 0, x, WINDOW_HEIGHT)
 	}
 }
-
