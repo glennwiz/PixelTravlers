@@ -24,8 +24,9 @@ Game :: struct {
 	dt:       f64,
 }
 
+//u8 :: byte
 Vec4 :: struct {
-	r: u8,
+	r: u8, 
 	g: u8,
 	b: u8,
 	a: u8,
@@ -51,6 +52,8 @@ get_time :: proc() -> f64 {
 }
 
 main :: proc() {
+
+
 
     fmt.println("s-----------------------------------------")
 
@@ -97,63 +100,89 @@ main :: proc() {
 	cell.x = WINDOW_WIDTH / 2 - (CELL_SIZE / 2)
 	cell.y = WINDOW_HEIGHT / 2 - (CELL_SIZE / 2)
 	
-	defer delete(cell_array)
+	defer delete(cell_array)	
+
+	cell2 := new(Cell)
+	cell2.color = Vec4{255, 0, 244, 255}
+	cell2.is_alive = true
+	cell2.x = WINDOW_WIDTH / 3 - (CELL_SIZE / 2)
+	cell2.y = WINDOW_HEIGHT / 2 - (CELL_SIZE / 2)
+	cell2.parent1 = cell
+
 	append(&cell_array, cell)
+	append(&cell_array, cell2)
+
+
+	//get the first cell in the array
+	c := cell_array[0]
+
+	fmt.println("Elements:", cell_array)
+	fmt.println("Length:  ", len(cell_array))
+	fmt.println("Capacity:", cap(cell_array))
+
 
 	game_counter := 0
 
 	game_loop : for {
 		game_counter += 1
+
+		draw_gradient(game.renderer)
+	
+		for c, _ in cell_array {			
+			wrap_cell_position(c)
+			// Drawing gradient from black to grey
+			
 		
-		//get the first cell in the array
-		c := cell_array[0]
 
-		wrap_cell_position(c)
 
-        // Drawing gradient from black to grey
-        draw_gradient(game.renderer)
+			if game_counter % 10 == 0 {
 
-		if game_counter % 10 == 0 {
-			r := rand.int_max(4)
-			if r == 0 {
-				c.x += 1
-			} 
-			
-			if r == 1 {
-				c.y -= 1
+	// print the cell
+	fmt.println("Cell: ", c)
+	fmt.printf("Cell: %v\n", c)
+	fmt.println("------")
+
+				r := rand.int_max(4)
+				if r == 0 {
+					c.x += 1
+				} 
+				
+				if r == 1 {
+					c.y -= 1
+				}   
+				
+				if r == 2 {
+					c.x -= 1
+				}
+	
+				if r == 3 {
+					c.y += 1
+				}
+			}
+	
+			rect := sdl2.Rect{
+				x = c.x,
+				y = c.y,    
+				w = CELL_SIZE,
+				h = CELL_SIZE,
 			}   
-			
-			if r == 2 {
-				c.x -= 1
-			}
-
-			if r == 3 {
-				c.y += 1
-			}
+	
+			sdl2.SetRenderDrawColor(game.renderer, c.color.r, c.color.g, c.color.b, c.color.a) 
+			sdl2.RenderFillRect(game.renderer, &rect)            
 		}
 
-		rect := sdl2.Rect{
-			x = c.x,
-			y = c.y,	
-			w = CELL_SIZE,
-			h = CELL_SIZE,
-		}	
-
-		sdl2.SetRenderDrawColor(game.renderer, c.color.r, c.color.g, c.color.b, c.color.a) 
-		sdl2.RenderFillRect(game.renderer, &rect)
-		 
 		sdl2.RenderPresent(game.renderer)
-
+		
 		if sdl2.PollEvent(&event) {
-            if event.type == sdl2.EventType.QUIT {
-                break game_loop
-            }
-
-            // Handle Keyboard Input
-            if event.type == sdl2.EventType.KEYDOWN {
-                #partial switch event.key.keysym.scancode {
-                    case .ESCAPE:
-                        break game_loop 
+			if event.type == sdl2.EventType.QUIT {
+				break game_loop
+			}
+	
+			// Handle Keyboard Input
+			if event.type == sdl2.EventType.KEYDOWN {
+				#partial switch event.key.keysym.scancode {
+					case .ESCAPE:
+						break game_loop 
 				}
 					
 				if sdl2.PollEvent(&event) {
