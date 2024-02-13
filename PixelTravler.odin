@@ -53,8 +53,6 @@ get_time :: proc() -> f64 {
 
 main :: proc() {
 
-
-
     fmt.println("s-----------------------------------------")
 
 	assert(sdl2.Init(sdl2.INIT_VIDEO) == 0, sdl2.GetErrorString())
@@ -99,6 +97,7 @@ main :: proc() {
 	cell.is_alive = true
 	cell.x = WINDOW_WIDTH / 2 - (CELL_SIZE / 2)
 	cell.y = WINDOW_HEIGHT / 2 - (CELL_SIZE / 2)
+	cell.dna = [8]byte{255, 255, 0, 255, 100, 0, 0, 0}
 	
 	defer delete(cell_array)	
 
@@ -107,6 +106,7 @@ main :: proc() {
 	cell2.is_alive = true
 	cell2.x = WINDOW_WIDTH / 3 - (CELL_SIZE / 2)
 	cell2.y = WINDOW_HEIGHT / 2 - (CELL_SIZE / 2)
+	cell2.dna = [8]byte{255, 0, 244, 255, 200, 0, 0, 0}
 	cell2.parent1 = cell
 
 	append(&cell_array, cell)
@@ -120,42 +120,37 @@ main :: proc() {
 	fmt.println("Length:  ", len(cell_array))
 	fmt.println("Capacity:", cap(cell_array))
 
-
 	game_counter := 0
+	movement_counter := 0
+	r := 0
 
 	game_loop : for {
 		game_counter += 1
+		movement_counter += 1
 
+		// Drawing gradient from black to grey
 		draw_gradient(game.renderer)
-	
+		
 		for c, _ in cell_array {			
 			wrap_cell_position(c)
-			// Drawing gradient from black to grey
-			
-		
-
 
 			if game_counter % 10 == 0 {
+				
+				map_byte_to_direction := map_byte_to_direction(c.dna[4])
 
-	// print the cell
-	fmt.println("Cell: ", c)
-	fmt.printf("Cell: %v\n", c)
-	fmt.println("------")
-
-				r := rand.int_max(4)
-				if r == 0 {
+				if map_byte_to_direction == "N" {
 					c.x += 1
 				} 
-				
-				if r == 1 {
+
+				if map_byte_to_direction == "E" {
 					c.y -= 1
 				}   
-				
-				if r == 2 {
+
+				if map_byte_to_direction == "S" {
 					c.x -= 1
 				}
-	
-				if r == 3 {
+
+				if map_byte_to_direction == "W" {
 					c.y += 1
 				}
 			}
@@ -226,3 +221,19 @@ draw_gradient :: proc(renderer: ^sdl2.Renderer) {
 		sdl2.RenderDrawLine(renderer, x, 0, x, WINDOW_HEIGHT)
 	}
 }
+
+map_byte_to_direction :: proc(b: u8) -> string {
+
+    switch b {
+        case 224..<255: return "N"
+		case 0..<31: return "N"
+		case 32..<63: return "E"
+		case 64..<94: return "E"
+		case 95..<127: return "S"
+		case 128..<159: return "S"
+		case 160..<191: return "W"
+		case 192..<223: return "W"      
+    }
+
+	return "N"
+}	
