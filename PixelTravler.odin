@@ -91,26 +91,20 @@ main :: proc() {
 	fmt.println("e-----------------------------------------")
 	event : sdl2.Event
 
-	// lets paint a yellow cell
-	cell := new(Cell)
-	cell.color = Vec4{255, 255, 0, 255}
-	cell.is_alive = true
-	cell.x = WINDOW_WIDTH / 2 - (CELL_SIZE / 2)
-	cell.y = WINDOW_HEIGHT / 2 - (CELL_SIZE / 2)
-	cell.dna = [8]byte{255, 255, 0, 255, 100, 0, 0, 0}
-	
-	defer delete(cell_array)	
+	for i := 0; i < 20; i += 1 {
+		cell := new(Cell)
+		cell.color = Vec4{255, 255, 0, 255}
+		cell.is_alive = true
+		cell.x = WINDOW_WIDTH / 2 - (CELL_SIZE / 2)
+		cell.y = WINDOW_HEIGHT / 2 - (CELL_SIZE / 2)
+		cell.dna = [8]byte{get_random_byte(), get_random_byte(), get_random_byte(), 255, 100, 0, 0, 0}
 
-	cell2 := new(Cell)
-	cell2.color = Vec4{255, 0, 244, 255}
-	cell2.is_alive = true
-	cell2.x = WINDOW_WIDTH / 3 - (CELL_SIZE / 2)
-	cell2.y = WINDOW_HEIGHT / 2 - (CELL_SIZE / 2)
-	cell2.dna = [8]byte{255, 0, 244, 255, 200, 0, 0, 0}
-	cell2.parent1 = cell
+		// Generate random direction
+		direction := get_random_byte()
+		cell.dna[4] = direction
 
-	append(&cell_array, cell)
-	append(&cell_array, cell2)
+		append(&cell_array, cell)
+	}
 
 
 	//get the first cell in the array
@@ -139,7 +133,7 @@ main :: proc() {
 				map_byte_to_direction := map_byte_to_direction(c.dna[4])
 
 				if map_byte_to_direction == "N" {
-					c.x += 1
+					c.x += 1 
 				} 
 
 				if map_byte_to_direction == "E" {
@@ -162,7 +156,7 @@ main :: proc() {
 				h = CELL_SIZE,
 			}   
 	
-			sdl2.SetRenderDrawColor(game.renderer, c.color.r, c.color.g, c.color.b, c.color.a) 
+			sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3]) 
 			sdl2.RenderFillRect(game.renderer, &rect)            
 		}
 
@@ -195,6 +189,10 @@ main :: proc() {
 			}
 		}
 	}
+}
+
+get_random_byte :: proc() -> u8 {
+    return u8(rand.int_max(256))
 }
 
 wrap_cell_position :: proc(cell: ^Cell) {
