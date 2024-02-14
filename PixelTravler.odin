@@ -14,7 +14,9 @@ import "core:math/linalg"
     Those who dare to fail miserably can achieve greatly
 */
 
-WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 320
+//1024x768
+
+WINDOW_WIDTH, WINDOW_HEIGHT :: 1024, 768
 CELL_SIZE :: 10
 
 Game :: struct {
@@ -53,6 +55,9 @@ get_time :: proc() -> f64 {
 
 main :: proc() {
 
+	perf_frequency := f64(sdl2.GetPerformanceFrequency())
+    start : f64
+    end : f64
     fmt.println("s-----------------------------------------")
 
 	assert(sdl2.Init(sdl2.INIT_VIDEO) == 0, sdl2.GetErrorString())
@@ -74,7 +79,7 @@ main :: proc() {
 	assert(renderer != nil, sdl2.GetErrorString())
 	defer sdl2.DestroyRenderer(renderer)
 
-	tickrate := 10.0
+	tickrate := 1000.0
 	ticktime := 1000.0 / tickrate
 
 	game := Game {
@@ -89,9 +94,10 @@ main :: proc() {
 	fmt.println("tickrate: ", tickrate)
 	fmt.println("ticktime: ", ticktime)
 	fmt.println("e-----------------------------------------")
+
 	event : sdl2.Event
 
-	for i := 0; i < 20; i += 1 {
+	for i := 0; i < 5000; i += 1 {
 		cell := new(Cell)
 		cell.color = Vec4{255, 255, 0, 255}
 		cell.is_alive = true
@@ -102,6 +108,7 @@ main :: proc() {
 		// Generate random direction
 		direction := get_random_byte()
 		cell.dna[4] = direction
+		cell.bias = get_random_float()
 
 		append(&cell_array, cell)
 	}
@@ -110,7 +117,10 @@ main :: proc() {
 	//get the first cell in the array
 	c := cell_array[0]
 
-	fmt.println("Elements:", cell_array)
+	if(len(cell_array) < 21) {
+		fmt.println("Elements:", cell_array)
+	}
+
 	fmt.println("Length:  ", len(cell_array))
 	fmt.println("Capacity:", cap(cell_array))
 
@@ -119,48 +129,70 @@ main :: proc() {
 	r := 0
 
 	game_loop : for {
+		start = get_time()
 		game_counter += 1
 		movement_counter += 1
 
 		// Drawing gradient from black to grey
-		draw_gradient(game.renderer)
+		draw_gradient(game.renderer)		
 		
-		for c, _ in cell_array {			
-			wrap_cell_position(c)
-
-			if game_counter % 10 == 0 {
+		if game_counter % 10 == 0 {
+			for c, _ in cell_array {	
 				
+				if game_counter % 200 == 0 {
+					
+					c.dna[0] = get_random_byte()
+					c.dna[1] = get_random_byte()
+					c.dna[2] = get_random_byte()
+					
+					c.dna[4] = get_random_byte()
+
+					c.bias = get_random_float()					
+				}	
+
+				wrap_cell_position(c)
+					
 				map_byte_to_direction := map_byte_to_direction(c.dna[4])
 
 				if map_byte_to_direction == "N" {
-					c.x += 1 
+					c.x += 1 * i32((c.bias * 10))
 				} 
 
 				if map_byte_to_direction == "E" {
-					c.y -= 1
+					c.y -= 1 * i32(c.bias * 10)
 				}   
 
 				if map_byte_to_direction == "S" {
-					c.x -= 1
+					c.x -= 1 * i32(c.bias * 10)
 				}
 
 				if map_byte_to_direction == "W" {
-					c.y += 1
-				}
+					c.y += 1 * i32(c.bias * 10)
+				}					
+		
+				rect := sdl2.Rect{
+					x = c.x,
+					y = c.y,    
+					w = CELL_SIZE,
+					h = CELL_SIZE,
+				}   
+		
+				sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3]) 
+				sdl2.RenderFillRect(game.renderer, &rect)            
 			}
 	
-			rect := sdl2.Rect{
-				x = c.x,
-				y = c.y,    
-				w = CELL_SIZE,
-				h = CELL_SIZE,
-			}   
-	
-			sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3]) 
-			sdl2.RenderFillRect(game.renderer, &rect)            
-		}
+			sdl2.RenderPresent(game.renderer)
 
-		sdl2.RenderPresent(game.renderer)
+			// Frame rate management
+			end = get_time()
+			for end - start < ticktime {
+				fmt.println("end - start: ", end - start)
+				end = get_time()
+			}	
+			fmt.println("end - start: ", end - start)
+			fmt.println("ticktime: ", ticktime)
+			fmt.println("perf_frequency: ", perf_frequency)
+		}		
 		
 		if sdl2.PollEvent(&event) {
 			if event.type == sdl2.EventType.QUIT {
@@ -193,6 +225,10 @@ main :: proc() {
 
 get_random_byte :: proc() -> u8 {
     return u8(rand.int_max(256))
+}
+
+get_random_float :: proc() -> f64 {
+	return rand.float64()
 }
 
 wrap_cell_position :: proc(cell: ^Cell) {
