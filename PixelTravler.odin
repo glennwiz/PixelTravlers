@@ -154,29 +154,35 @@ main :: proc() {
 					
 				map_byte_to_direction := map_byte_to_direction(c.dna[4])
 
-				if map_byte_to_direction == "N" {
-					c.x += 1 * i32((c.bias * 10))
-				} 
-
-				if map_byte_to_direction == "E" {
-					c.y -= 1 * i32(c.bias * 10)
-				}   
-
-				if map_byte_to_direction == "S" {
-					c.x -= 1 * i32(c.bias * 10)
+				switch map_byte_to_direction {
+				case "N":
+					c.x += 1 * i32(c.bias * 20)
+				case "NE":
+					c.x += 1 * i32(c.bias * 20)
+					c.y -= 1 * i32(c.bias * 20)
+				case "E":
+					c.y -= 1 * i32(c.bias * 20)
+				case "SE":
+					c.x -= 1 * i32(c.bias * 20)
+					c.y -= 1 * i32(c.bias * 20)
+				case "S":
+					c.x -= 1 * i32(c.bias * 20)
+				case "SW":
+					c.x -= 1 * i32(c.bias * 20)
+					c.y += 1 * i32(c.bias * 20)
+				case "W":
+					c.y += 1 * i32(c.bias * 20)
+				case "NW":
+					c.x += 1 * i32(c.bias * 20)
+					c.y += 1 * i32(c.bias * 20)
 				}
 
-				if map_byte_to_direction == "W" {
-					c.y += 1 * i32(c.bias * 10)
-				}					
-		
 				rect := sdl2.Rect{
 					x = c.x,
 					y = c.y,    
 					w = CELL_SIZE,
 					h = CELL_SIZE,
-				}   
-		
+				}
 				sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3]) 
 				sdl2.RenderFillRect(game.renderer, &rect)            
 			}
@@ -258,16 +264,16 @@ draw_gradient :: proc(renderer: ^sdl2.Renderer) {
 
 map_byte_to_direction :: proc(b: u8) -> string {
 
-    switch b {
-        case 224..<255: return "N"
-		case 0..<31: return "N"
-		case 32..<63: return "E"
-		case 64..<94: return "E"
-		case 95..<127: return "S"
-		case 128..<159: return "S"
-		case 160..<191: return "W"
-		case 192..<223: return "W"      
-    }
+	switch b {
+		case 240..<255, 0..<16: return "N"
+		case 16..<48: return "NE"
+		case 48..<80: return "E"
+		case 80..<112: return "SE"
+		case 112..<144: return "S"
+		case 144..<176: return "SW"
+		case 176..<208: return "W"
+		case 208..<240: return "NW"  
+	}
 
 	return "N"
 }	
