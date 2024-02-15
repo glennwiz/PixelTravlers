@@ -14,10 +14,8 @@ import "core:math/linalg"
     Those who dare to fail miserably can achieve greatly
 */
 
-//1024x768
-
-WINDOW_WIDTH, WINDOW_HEIGHT :: 1024, 768
-CELL_SIZE :: 10
+WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
+CELL_SIZE :: 7
 
 Game :: struct {
 	renderer: ^sdl2.Renderer,
@@ -97,7 +95,7 @@ main :: proc() {
 
 	event : sdl2.Event
 
-	for i := 0; i < 5000; i += 1 {
+	for i := 0; i < 10000; i += 1 {
 		cell := new(Cell)
 		cell.color = Vec4{255, 255, 0, 255}
 		cell.is_alive = true
@@ -136,10 +134,10 @@ main :: proc() {
 		// Drawing gradient from black to grey
 		draw_gradient(game.renderer)		
 		
-		if game_counter % 10 == 0 {
+		if game_counter % 50 == 0 {
 			for c, _ in cell_array {	
 				
-				if game_counter % 200 == 0 {
+				if game_counter % 2009 == 0 {
 					
 					c.dna[0] = get_random_byte()
 					c.dna[1] = get_random_byte()
@@ -195,9 +193,13 @@ main :: proc() {
 				fmt.println("end - start: ", end - start)
 				end = get_time()
 			}	
-			fmt.println("end - start: ", end - start)
-			fmt.println("ticktime: ", ticktime)
-			fmt.println("perf_frequency: ", perf_frequency)
+
+			if game_counter % 1000 == 0 {
+				fmt.println("end - start: ", end - start)
+				fmt.println("ticktime: ", ticktime)
+				//fmt.println("perf_frequency: ", perf_frequency)
+				fmt.println("game_counter: ", game_counter)
+			}			
 		}		
 		
 		if sdl2.PollEvent(&event) {
@@ -228,6 +230,8 @@ main :: proc() {
 		}
 	}
 }
+
+
 
 get_random_byte :: proc() -> u8 {
     return u8(rand.int_max(256))
