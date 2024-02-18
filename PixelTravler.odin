@@ -41,6 +41,7 @@ Cell :: struct {
 	age: u16,
 	can_reproduce: bool,
 	time_since_reproduction: u16,
+	is_growing: bool,
 	past_x: i32,
 	past_y: i32,
 	size: u8,
@@ -105,10 +106,11 @@ main :: proc() {
 	for i := 0; i < 2; i += 1 {
 		cell := new(Cell)
 		cell.age = 0;
-		cell.size = 1
+		cell.size = CELL_SIZE
 		cell.color = Vec4{255, 255, 0, 255}
 		cell.is_alive = true
 		cell.can_reproduce = false
+		cell.is_growing = false
 		cell.time_since_reproduction = 90
 		cell.x = WINDOW_WIDTH / 2 - (CELL_SIZE / 2)
 		cell.y = WINDOW_HEIGHT / 2 - (CELL_SIZE / 2)
@@ -190,7 +192,7 @@ main :: proc() {
 
 					c.bias = get_random_float()					
 				}	
-				//fmt.println("cell age ", c.age)
+
 				c.age += 1
 				c.time_since_reproduction += 1
 
@@ -205,44 +207,38 @@ main :: proc() {
 				for c2, _ in cell_array {
 					if c != c2 {
 
+						v := get_random_float()	
+						//fmt.println("v: ", v)
 						//Euclidean distance √(c.x − c2.x)^2 + (c − d)^2
 						distance := math.sqrt((f64((c.x - c2.x) * (c.x - c2.x) + (c.y - c2.y) * (c.y - c2.y))))					
-
-						if  len(cell_array) < 100  && distance < 200 && c.can_reproduce && c2.can_reproduce && c.time_since_reproduction > 100 && c.parent1 != c2 && c.parent2 != c2{
-							fmt.println("--------------->>>>>______________ Reproducing")
+						spawn :u8= get_random_Max100()
+						if  spawn < u8(10) &&  len(cell_array) < 100  && distance < 200 && c.can_reproduce && c2.can_reproduce && c.time_since_reproduction > 100 && c.parent1 != c2 && c.parent2 != c2{
 							child := new(Cell)
 							child.age = 0
-							child.color = Vec4{255, 255, 0, 255}
 							child.is_alive = true
+							child.is_growing = true
 							child.x = c.x
 							child.y = c.y
 							child.time_since_reproduction = 0
-							child.dna = [8]byte{get_random_byte(), c.dna[1] - 18, c.dna[2] - 18, 255, 100, 0, 0, 0}
-							child.bias = c.bias
-							child.parent1 = c
-							child.parent2 = c2
+							child.dna = [8]byte{get_random_byte(), c.dna[1] - 18, c.dna[2] - 18, get_random_byte(), get_random_byte(), 0, 0, 0}
+							child.bias =v					
 							append(&cell_array, child)
 							c.time_since_reproduction = 0
-						}
-						//	if c.time_since_reproduction > 100 {
-						//		fmt.println("Reproducing")
-						//		child := new(Cell)
-						//		child.age = 0
-						//		child.color = Vec4{255, 255, 0, 255}
-						//		child.is_alive = true
-						//		child.x = c.x
-						//		child.y = c.y
-						//		child.dna = [8]byte{c.dna[0], c.dna[1], c.dna[2], 255, 100, 0, 0, 0}
-						//		child.bias = c.bias
-						//		child.parent1 = c
-						//		child.parent2 = c2
-						//		append(&cell_array, child)
-						//		c.time_since_reproduction = 0
-						//	}
-						//}
+						}						
 					}
 				}
-					
+				
+				//if is growing debug log 
+				if c.is_growing {
+					fmt.println("Cell is growing")
+					fmt.println("Cell size: ", c.size)
+					fmt.println("Cell age: ", c.age)
+					fmt.println("Cell time_since_reproduction: ", c.time_since_reproduction)
+					fmt.println("Cell dna: ", c.dna)
+					fmt.println("Cell bias: ", c.bias)
+
+				}
+
 				map_byte_to_direction := map_byte_to_direction(c.dna[4])
 				bias_strength := c.bias * 2
 				switch map_byte_to_direction {
@@ -279,13 +275,18 @@ main :: proc() {
 					sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3]) 
 					sdl2.RenderFillRect(game.renderer, &rect)   
 				}
-
 				
 				if game_counter % 400 == 0 && c.size < CELL_SIZE {
 					c.size += 1
 				}
 
-				if c.age > 150 {
+				if c.size == CELL_SIZE {
+					c.is_growing = false
+				}
+
+				v := get_random_float()
+
+				if c.age > 250 &&  v < 0.1 {
 					c.is_alive = false
 				}
 			}
@@ -293,8 +294,7 @@ main :: proc() {
 			sdl2.RenderPresent(game.renderer)
 
 			// Frame rate management
-			end = get_time()
-			
+			end = get_time()			
 
 			if game_counter % 10000000 == 0 {
 				fmt.println("end - start: ", end - start)
