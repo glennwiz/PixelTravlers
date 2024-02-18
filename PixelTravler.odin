@@ -126,10 +126,6 @@ main :: proc() {
 	//get the first cell in the array
 	c := cell_array[0]
 
-	if(len(cell_array) < 21) {
-		fmt.println("Elements:", cell_array)
-	}
-
 	fmt.println("Length:  ", len(cell_array))
 	fmt.println("Capacity:", cap(cell_array))
 
@@ -138,6 +134,42 @@ main :: proc() {
 	r := 0
 
 	game_loop : for {
+
+		if game_counter % 1000 == 0 {
+			fmt.println("Length:  ", len(cell_array))
+		}
+
+		if game_counter % 10000 == 0 {
+			dyn_copy := make([dynamic]^Cell, len(cell_array), cap(cell_array))
+			defer delete(dyn_copy)			
+			copy(dyn_copy[:], cell_array[:])
+
+			cell_array = make([dynamic]^Cell)
+			//removing dead cells
+			 for i := 0; i < len(dyn_copy); i += 1 {
+				if dyn_copy[i].is_alive {
+					append(&cell_array, dyn_copy[i])
+				}
+				else {
+					//fmt.println("---------------->cell is dead")
+				}
+			}
+
+			fmt.println("--Length:  ", len(cell_array) )
+			fmt.println("--Capacity:", cap(cell_array))
+
+			copy(dyn_copy[:],cell_array[:])
+
+
+			fmt.println("-----Length:  ", len(dyn_copy) )
+			fmt.println("-----Capacity:", cap(dyn_copy))
+			fmt.println("-----Length:  ", len(cell_array) )
+			fmt.println("-----Capacity:", cap(cell_array))
+			fmt.println("-----Movement counter: ", movement_counter)
+
+		}
+		
+  
 		start = get_time()
 		game_counter += 1
 		movement_counter += 1
@@ -174,26 +206,9 @@ main :: proc() {
 					if c != c2 {
 
 						//Euclidean distance √(c.x − c2.x)^2 + (c − d)^2
-						distance := math.sqrt((f64((c.x - c2.x) * (c.x - c2.x) + (c.y - c2.y) * (c.y - c2.y))))
+						distance := math.sqrt((f64((c.x - c2.x) * (c.x - c2.x) + (c.y - c2.y) * (c.y - c2.y))))					
 
-						//debug logging
-						if game_counter % 9000 == 0 && game_counter < 10000{
-							fmt.println("c.x: ", c.x)
-							fmt.println("c.y: ", c.y)
-							fmt.println("c2.x: ", c2.x)
-							fmt.println("c2.y: ", c2.y)
-
-							fmt.println("c.can_reproduce: ", c.can_reproduce)
-							fmt.println("c2.can_reproduce: ", c2.can_reproduce)
-							fmt.println("c.time_since_reproduction: ", c.time_since_reproduction)
-							fmt.println("c2.time_since_reproduction: ", c2.time_since_reproduction)
-							fmt.println("c.age: ", c.age)
-							fmt.println("c2.age: ", c2.age)
-							fmt.println("Distance: ", distance)
-						}
-
-						
-						if distance < 200 && c.can_reproduce && c2.can_reproduce && c.time_since_reproduction > 100{
+						if  len(cell_array) < 100  && distance < 200 && c.can_reproduce && c2.can_reproduce && c.time_since_reproduction > 100 && c.parent1 != c2 && c.parent2 != c2{
 							fmt.println("--------------->>>>>______________ Reproducing")
 							child := new(Cell)
 							child.age = 0
@@ -259,8 +274,12 @@ main :: proc() {
 					w = i32(c.size),
 					h = i32(c.size),
 				}
-				sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3]) 
-				sdl2.RenderFillRect(game.renderer, &rect)   
+
+				if c.is_alive {
+					sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3]) 
+					sdl2.RenderFillRect(game.renderer, &rect)   
+				}
+
 				
 				if game_counter % 400 == 0 && c.size < CELL_SIZE {
 					c.size += 1
