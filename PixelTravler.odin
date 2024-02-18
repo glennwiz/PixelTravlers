@@ -5,6 +5,8 @@ import "vendor:sdl2"
 import "core:math/rand"
 import "core:math/linalg"
 
+import "core:mem"
+
 /*
     Maxwell's Daemon, in Gnipahellir's depths, plays a cunning game,
     With points of memory as his pawns, in entropy's endless frame.
@@ -15,7 +17,7 @@ import "core:math/linalg"
 */
 
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
-CELL_SIZE :: 7
+CELL_SIZE :: 15
 
 Game :: struct {
 	renderer: ^sdl2.Renderer,
@@ -35,6 +37,7 @@ Vec4 :: struct {
 Cell :: struct {
 	x: i32,
     y: i32,
+	age: u16,
 	past_x: i32,
 	past_y: i32,
     is_alive: bool,
@@ -77,7 +80,7 @@ main :: proc() {
 	assert(renderer != nil, sdl2.GetErrorString())
 	defer sdl2.DestroyRenderer(renderer)
 
-	tickrate := 1000.0
+	tickrate := 100.0
 	ticktime := 1000.0 / tickrate
 
 	game := Game {
@@ -95,8 +98,9 @@ main :: proc() {
 
 	event : sdl2.Event
 
-	for i := 0; i < 10000; i += 1 {
+	for i := 0; i < 2; i += 1 {
 		cell := new(Cell)
+		cell.age = 0;
 		cell.color = Vec4{255, 255, 0, 255}
 		cell.is_alive = true
 		cell.x = WINDOW_WIDTH / 2 - (CELL_SIZE / 2)
@@ -134,20 +138,21 @@ main :: proc() {
 		// Drawing gradient from black to grey
 		draw_gradient(game.renderer)		
 		
-		if game_counter % 50 == 0 {
-			for c, _ in cell_array {	
+		if game_counter % 200 == 0 {
+			for c, _ in cell_array {
 				
-				if game_counter % 2009 == 0 {
-					
-					c.dna[0] = get_random_byte()
-					c.dna[1] = get_random_byte()
-					c.dna[2] = get_random_byte()
-					
-					c.dna[4] = get_random_byte()
+				mutation_chance :u8= get_random_Max100()
+				if c.age > u16(200) && mutation_chance < u8(10) {
+					fmt.println("Mutation chance: ", mutation_chance)					
+					//c.dna[0] = get_random_byte()
+					//c.dna[1] = get_random_byte()
+					//c.dna[2] = get_random_byte()					
+					//c.dna[4] = get_random_byte()
 
 					c.bias = get_random_float()					
 				}	
-
+				fmt.println("cell age ", c.age)
+				c.age += 1
 				wrap_cell_position(c)
 					
 				map_byte_to_direction := map_byte_to_direction(c.dna[4])
@@ -189,10 +194,7 @@ main :: proc() {
 
 			// Frame rate management
 			end = get_time()
-			for end - start < ticktime {
-				fmt.println("end - start: ", end - start)
-				end = get_time()
-			}	
+			
 
 			if game_counter % 1000 == 0 {
 				fmt.println("end - start: ", end - start)
@@ -239,6 +241,10 @@ get_random_byte :: proc() -> u8 {
 
 get_random_float :: proc() -> f64 {
 	return rand.float64()
+}
+
+get_random_Max100 :: proc() -> u8 {
+	return u8(rand.int_max(100))
 }
 
 wrap_cell_position :: proc(cell: ^Cell) {
