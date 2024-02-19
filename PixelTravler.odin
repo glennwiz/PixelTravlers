@@ -103,7 +103,7 @@ main :: proc() {
 
 	event : sdl2.Event
 
-	for i := 0; i < 2; i += 1 {
+	for i := 0; i < 4; i += 1 {
 		cell := new(Cell)
 		cell.age = 0;
 		cell.size = CELL_SIZE
@@ -124,10 +124,6 @@ main :: proc() {
 		append(&cell_array, cell)
 	}
 
-
-	//get the first cell in the array
-	c := cell_array[0]
-
 	fmt.println("Length:  ", len(cell_array))
 	fmt.println("Capacity:", cap(cell_array))
 
@@ -141,37 +137,27 @@ main :: proc() {
 			fmt.println("Length:  ", len(cell_array))
 		}
 
-		if game_counter % 10000 == 0 {
+		//every 1000 game ticks, we will remove the dead cells from the array
+		if game_counter % 1000 == 0 {
+			
+			//create a temp array to hold the state of the current array
 			dyn_copy := make([dynamic]^Cell, len(cell_array), cap(cell_array))
-			defer delete(dyn_copy)			
+			defer delete(dyn_copy)
+
+			//copy the array to a temp array
 			copy(dyn_copy[:], cell_array[:])
 
+			//clear the current array
 			cell_array = make([dynamic]^Cell)
-			//removing dead cells
+
+			//moving the alive cells to the new temp array
 			 for i := 0; i < len(dyn_copy); i += 1 {
 				if dyn_copy[i].is_alive {
 					append(&cell_array, dyn_copy[i])
-				}
-				else {
-					//fmt.println("---------------->cell is dead")
-				}
-			}
-
-			fmt.println("--Length:  ", len(cell_array) )
-			fmt.println("--Capacity:", cap(cell_array))
-
-			copy(dyn_copy[:],cell_array[:])
-
-
-			fmt.println("-----Length:  ", len(dyn_copy) )
-			fmt.println("-----Capacity:", cap(dyn_copy))
-			fmt.println("-----Length:  ", len(cell_array) )
-			fmt.println("-----Capacity:", cap(cell_array))
-			fmt.println("-----Movement counter: ", movement_counter)
-
+				}				
+			}				
 		}
-		
-  
+		  
 		start = get_time()
 		game_counter += 1
 		movement_counter += 1
@@ -183,14 +169,9 @@ main :: proc() {
 			for c, _ in cell_array {
 				
 				mutation_chance :u8= get_random_Max100()
-				if c.age > u16(50) && mutation_chance < u8(10) {
-					//fmt.println("Mutation chance: ", mutation_chance)					
-					//c.dna[0] = get_random_byte()
-					//c.dna[1] = get_random_byte()
-					//c.dna[2] = get_random_byte()					
-					c.dna[4] = get_random_byte()
-
-					c.bias = get_random_float()					
+				if c.age > u16(50) && mutation_chance < u8(10) {				
+					c.dna[4] = get_random_byte()  //direction
+					c.bias = get_random_float()	 //speed	
 				}	
 
 				c.age += 1
@@ -205,14 +186,11 @@ main :: proc() {
 
 				// if two cells are close to each other, they can reproduce
 				for c2, _ in cell_array {
-					if c != c2 {
-
-						v := get_random_float()	
-						//fmt.println("v: ", v)
-						//Euclidean distance √(c.x − c2.x)^2 + (c − d)^2
+					if c != c2 {						
+						//Euclidean distance √(c.x − c2.x)^2 + (c.y − c2.y)^2
 						distance := math.sqrt((f64((c.x - c2.x) * (c.x - c2.x) + (c.y - c2.y) * (c.y - c2.y))))					
 						spawn :u8= get_random_Max100()
-						if  spawn < u8(10) &&  len(cell_array) < 100  && distance < 200 && c.can_reproduce && c2.can_reproduce && c.time_since_reproduction > 100 && c.parent1 != c2 && c.parent2 != c2{
+						if  spawn < u8(1) &&  len(cell_array) < 100  && distance < 200 && c.can_reproduce && c2.can_reproduce && c.time_since_reproduction > 100 && c.parent1 != c2 && c.parent2 != c2{
 							child := new(Cell)
 							child.age = 0
 							child.is_alive = true
@@ -221,7 +199,7 @@ main :: proc() {
 							child.y = c.y
 							child.time_since_reproduction = 0
 							child.dna = [8]byte{get_random_byte(), c.dna[1] - 18, c.dna[2] - 18, get_random_byte(), get_random_byte(), 0, 0, 0}
-							child.bias =v					
+							child.bias = get_random_float()					
 							append(&cell_array, child)
 							c.time_since_reproduction = 0
 						}						
@@ -229,7 +207,7 @@ main :: proc() {
 				}
 				
 				//if is growing debug log 
-				if c.is_growing {
+				if c.is_growing && len(cell_array) < 15 {
 					fmt.println("Cell is growing")
 					fmt.println("Cell size: ", c.size)
 					fmt.println("Cell age: ", c.age)
@@ -286,7 +264,7 @@ main :: proc() {
 
 				v := get_random_float()
 
-				if c.age > 250 &&  v < 0.1 {
+				if c.age > 250 &&  v < 0.01 {
 					c.is_alive = false
 				}
 			}
