@@ -36,19 +36,19 @@ Vec4 :: struct {
 	a: u8,
 }
 
-Cell :: struct {
-	x:                       f32,
-	y:                       f32,
-	age:                     u16,
-	can_reproduce:           bool,
-	time_since_reproduction: u16,
-	is_growing:              bool,
-	past_x:                  f32,
-	past_y:                  f32,
-	size:                    u8,
+Cell :: struct {	
 	is_alive:                bool,
-	color:                   Vec4,
-	bias:                    f64,
+	can_reproduce:           bool,
+	is_growing:              bool,	
+	size:                    u8,	
+	x:                       f16,
+	y:                       f16,		
+	past_x:                  f16,
+	past_y:                  f16,
+	age:                     u16,
+	time_since_reproduction: u16,
+	bias:                    f32,
+	color:                   Vec4,	
 	parent1:                 ^Cell, // Pointer to first parent cell
 	parent2:                 ^Cell, // Pointer to second parent cell
 	dna:                     [8]byte, //dna :8 used atm: [4 byte RGB, 1 byte movement bias, 1byte speed bias, 1byte mutation rate, 1byte repoduction rate, 1byte life span]
@@ -57,35 +57,6 @@ Cell :: struct {
 cell_array := make([dynamic]^Cell)
 
 main :: proc() {
-
-
-	fmt.println("s-----------------------------------------")
-	
-	fmt.println("sizeof(Vec4): ", size_of(Vec4))
-	fmt.println("sizeof(u8): ", size_of(u8))
-	fmt.println("sizeof(f16): ", size_of(f16))
-	fmt.println("sizeof(f32): ", size_of(f32))
-	fmt.println("sizeof(u16): ", size_of(u16))
-	fmt.println("sizeof([8]byte): ", size_of([8]byte))
-	fmt.println("sizeof([dynamic]^Cell): ", size_of([dynamic]^Cell))
-	fmt.println("sizeof(Cell): ", size_of(Cell))
-	fmt.println("sizeof(Game): ", size_of(Game))
-	fmt.println("sizeof(sdl2.Renderer): ", size_of(sdl2.Renderer))
-	fmt.println("sizeof(sdl2.Window): ", size_of(sdl2.Window))
-	fmt.println("sizeof(sdl2.Event): ", size_of(sdl2.Event))
-	fmt.println("sizeof(sdl2.Rect): ", size_of(sdl2.Rect))
-	fmt.println("sizeof(sdl2.FRect): ", size_of(sdl2.FRect))
-	fmt.println("sizeof(sdl2.Texture): ", size_of(sdl2.Texture))
-	fmt.println("sizeof(sdl2.RendererInfo): ", size_of(sdl2.RendererInfo))
-	fmt.println("sizeof(sdl2.PixelFormat): ", size_of(sdl2.PixelFormat))
-	fmt.println("sizeof(sdl2.Color): ", size_of(sdl2.Color))
-	fmt.println("sizeof(sdl2.Palette): ", size_of(sdl2.Palette))
-	fmt.println("sizeof(sdl2.RendererInfo): ", size_of(sdl2.RendererInfo))
-	fmt.println("sizeof(sdl2.RendererInfo): ", size_of(sdl2.RendererInfo))
-	
-	
-	exit()
-	
 
 	perf_frequency := f64(sdl2.GetPerformanceFrequency())
 	start: f64
@@ -269,6 +240,10 @@ main :: proc() {
 				}
 			}
 
+			//2` = x^2 + c
+			//fractal 
+			
+
 			//if is growing debug log 
 			if c.is_growing && len(cell_array) < 15 {
 				fmt.println("Cell is growing")
@@ -284,30 +259,30 @@ main :: proc() {
 
 			switch map_byte_to_direction {
 			case "N":
-				c.x += 1 * f32(bias_strength)
+				c.x += 1 * f16(bias_strength)
 			case "NE":
-				c.x += 1 * f32(bias_strength)
-				c.y -= 1 * f32(bias_strength)
+				c.x += 1 * f16(bias_strength)
+				c.y -= 1 * f16(bias_strength)
 			case "E":
-				c.y -= 1 * f32(bias_strength)
+				c.y -= 1 * f16(bias_strength)
 			case "SE":
-				c.x -= 1 * f32(bias_strength)
-				c.y -= 1 * f32(bias_strength)
+				c.x -= 1 * f16(bias_strength)
+				c.y -= 1 * f16(bias_strength)
 			case "S":
-				c.x -= 1 * f32(bias_strength)
+				c.x -= 1 * f16(bias_strength)
 			case "SW":
-				c.x -= 1 * f32(bias_strength)
-				c.y += 1 * f32(bias_strength)
+				c.x -= 1 * f16(bias_strength)
+				c.y += 1 * f16(bias_strength)
 			case "W":
-				c.y += 1 * f32(bias_strength)
+				c.y += 1 * f16(bias_strength)
 			case "NW":
-				c.x += 1 * f32(bias_strength)
-				c.y += 1 * f32(bias_strength)
+				c.x += 1 * f16(bias_strength)
+				c.y += 1 * f16(bias_strength)
 			}
 
 			rect := sdl2.FRect {
-				x = c.x,
-				y = c.y,
+				x = f32(c.x),
+				y = f32(c.y),
 				w = f32(c.size),
 				h = f32(c.size),
 			}
@@ -379,8 +354,8 @@ get_random_byte :: proc() -> u8 {
 	return u8(rand.int_max(256))
 }
 
-get_random_float :: proc() -> f64 {
-	return rand.float64()
+get_random_float :: proc() -> f32 {
+	return rand.float32()
 }
 
 get_random_Max100 :: proc() -> u8 {
