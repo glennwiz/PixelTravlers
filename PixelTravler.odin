@@ -5,6 +5,7 @@ import "core:math"
 import "core:math/linalg"
 import "core:math/rand"
 import "vendor:sdl2"
+import "core:os"
 
 import "core:mem"
 
@@ -56,6 +57,35 @@ Cell :: struct {
 cell_array := make([dynamic]^Cell)
 
 main :: proc() {
+
+
+	fmt.println("s-----------------------------------------")
+	
+	fmt.println("sizeof(Vec4): ", size_of(Vec4))
+	fmt.println("sizeof(u8): ", size_of(u8))
+	fmt.println("sizeof(f16): ", size_of(f16))
+	fmt.println("sizeof(f32): ", size_of(f32))
+	fmt.println("sizeof(u16): ", size_of(u16))
+	fmt.println("sizeof([8]byte): ", size_of([8]byte))
+	fmt.println("sizeof([dynamic]^Cell): ", size_of([dynamic]^Cell))
+	fmt.println("sizeof(Cell): ", size_of(Cell))
+	fmt.println("sizeof(Game): ", size_of(Game))
+	fmt.println("sizeof(sdl2.Renderer): ", size_of(sdl2.Renderer))
+	fmt.println("sizeof(sdl2.Window): ", size_of(sdl2.Window))
+	fmt.println("sizeof(sdl2.Event): ", size_of(sdl2.Event))
+	fmt.println("sizeof(sdl2.Rect): ", size_of(sdl2.Rect))
+	fmt.println("sizeof(sdl2.FRect): ", size_of(sdl2.FRect))
+	fmt.println("sizeof(sdl2.Texture): ", size_of(sdl2.Texture))
+	fmt.println("sizeof(sdl2.RendererInfo): ", size_of(sdl2.RendererInfo))
+	fmt.println("sizeof(sdl2.PixelFormat): ", size_of(sdl2.PixelFormat))
+	fmt.println("sizeof(sdl2.Color): ", size_of(sdl2.Color))
+	fmt.println("sizeof(sdl2.Palette): ", size_of(sdl2.Palette))
+	fmt.println("sizeof(sdl2.RendererInfo): ", size_of(sdl2.RendererInfo))
+	fmt.println("sizeof(sdl2.RendererInfo): ", size_of(sdl2.RendererInfo))
+	
+	
+	exit()
+	
 
 	perf_frequency := f64(sdl2.GetPerformanceFrequency())
 	start: f64
@@ -404,4 +434,9 @@ map_byte_to_direction :: proc(b: u8) -> string {
 	}
 
 	return "N"
+}
+
+exit :: proc() {
+	fmt.println("Exiting...")
+	os.exit(0)
 }
