@@ -56,6 +56,8 @@ Cell :: struct {
 
 cell_array := make([dynamic]^Cell)
 
+frac_counter : u8 = 0
+
 main :: proc() {
 
 	perf_frequency := f64(sdl2.GetPerformanceFrequency())
@@ -140,12 +142,17 @@ main :: proc() {
 		dt       = frameDelay,
 	}
 
+	up_tick: bool = true
 	game_loop: for {
+		
 
 		framStart = sdl2.GetTicks()
 
 		if game_counter % 60 == 0 {
 			fmt.println("Length:  ", len(cell_array))
+
+
+
 		}
 
 		//every 60 game ticks, we will remove the dead cells from the array
@@ -174,6 +181,30 @@ main :: proc() {
 
 		// Drawing gradient from black to grey
 		draw_gradient(game.renderer)
+
+		//2` = x^2 + c
+		//fractal 
+		sdl2.SetRenderDrawColor(game.renderer, 100, 100, 100, 10)	
+		
+		if frac_counter == 255 {
+			up_tick = true 
+		}
+
+		if frac_counter == 0{
+			up_tick = false
+
+		}
+
+		if up_tick{
+			frac_counter = frac_counter -1 
+			
+		}else{	
+			frac_counter = frac_counter + 1			
+		}
+		
+		
+		draw_dragon_curve(renderer, i32(frac_counter), 500, 700, 500, 12)
+		draw_dragon_curve(renderer, i32(frac_counter) + 100, 900, 1700, 1500, 8)
 
 		for c, _ in cell_array {
 			mutation_chance: u8 = get_random_Max100()
@@ -240,9 +271,8 @@ main :: proc() {
 				}
 			}
 
-			//2` = x^2 + c
-			//fractal 
-			
+
+
 
 			//if is growing debug log 
 			if c.is_growing && len(cell_array) < 15 {
@@ -414,4 +444,18 @@ map_byte_to_direction :: proc(b: u8) -> string {
 exit :: proc() {
 	fmt.println("Exiting...")
 	os.exit(0)
+}
+
+draw_dragon_curve :: proc(renderer: ^sdl2.Renderer, x0, y0, x1, y1: i32, level: int)
+{
+	if level <= 0 {
+        sdl2.RenderDrawLine(renderer, x0, y0, x1, y1)
+        return
+    }
+
+    xm := (x0 + x1) / 2 + (y1 - y0) / 3
+    ym := (y0 + y1) / 2 + (x0 - x1) / 2
+
+    draw_dragon_curve(renderer, x0, y0, xm, ym, level-1)
+    draw_dragon_curve(renderer, x1, y1, xm, ym, level-1)
 }
