@@ -6,6 +6,7 @@ import "core:math/linalg"
 import "core:math/rand"
 import "vendor:sdl2"
 import "core:os"
+import "core:unicode/utf8"
 
 import "core:mem"
 
@@ -20,6 +21,9 @@ import "core:mem"
 
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
 CELL_SIZE :: 15
+BIAS_MULTI :: 3
+REPRODUCE_AGE :: 480
+DEATH_DELAY :: 480
 
 Game :: struct {
 	renderer: ^sdl2.Renderer,
@@ -79,16 +83,9 @@ main :: proc() {
 	assert(window != nil, sdl2.GetErrorString())
 	defer sdl2.DestroyWindow(window)
 
-	// Must not do VSync because we run the tick loop on the same thread as rendering.
 	renderer := sdl2.CreateRenderer(window, -1, sdl2.RENDERER_ACCELERATED)
 	assert(renderer != nil, sdl2.GetErrorString())
 	defer sdl2.DestroyRenderer(renderer)
-
-
-	fmt.println("screen_width: ", WINDOW_WIDTH)
-	fmt.println("screen_height: ", WINDOW_HEIGHT)
-	fmt.println("cell_size: ", CELL_SIZE)
-	fmt.println("e-----------------------------------------")
 
 	event: sdl2.Event
 
@@ -100,7 +97,7 @@ main :: proc() {
 		cell.is_alive = true
 		cell.can_reproduce = false
 		cell.is_growing = false
-		cell.time_since_reproduction = 90
+		cell.time_since_reproduction = 1000
 		cell.x = WINDOW_WIDTH / 2 - (CELL_SIZE / 2)
 		cell.y = WINDOW_HEIGHT / 2 - (CELL_SIZE / 2)
 		cell.dna = [8]byte {
@@ -122,9 +119,6 @@ main :: proc() {
 		append(&cell_array, cell)
 	}
 
-	fmt.println("Length:  ", len(cell_array))
-	fmt.println("Capacity:", cap(cell_array))
-
 	game_counter := 0
 	movement_counter := 0
 	r := 0
@@ -142,21 +136,18 @@ main :: proc() {
 		dt       = frameDelay,
 	}
 
-	up_tick: bool = true
-	game_loop: for {
-		
-
+	
+	game_loop: for {		
+		// Start of game loop, we log the start so we can calculate the time it took to render the frame
 		framStart = sdl2.GetTicks()
-
+		
+		// we only want to print the length about 1 time per second so me mod 60
 		if game_counter % 60 == 0 {
 			fmt.println("Length:  ", len(cell_array))
-
-
-
 		}
 
-		//every 60 game ticks, we will remove the dead cells from the array
-		if game_counter % 60 == 0 {
+		//every N game ticks, we will remove the dead cells from the array
+		if game_counter % DEATH_DELAY == 0 {
 
 			//create a temp array to hold the state of the current array
 			dyn_copy := make([dynamic]^Cell, len(cell_array), cap(cell_array))
@@ -186,39 +177,29 @@ main :: proc() {
 		//fractal 
 		sdl2.SetRenderDrawColor(game.renderer, 100, 100, 100, 10)	
 		
-		if frac_counter == 255 {
-			up_tick = true 
-		}
-
-		if frac_counter == 0{
-			up_tick = false
-
-		}
-
-		if up_tick{
-			frac_counter = frac_counter -1 
-			
-		}else{	
-			frac_counter = frac_counter + 1			
-		}
+		//this is the fractal counter, it will go from 0 to 255 and back to 0
+		//this will be used to draw the dragon curve with different colors
+		draw_dragon_D(renderer)
 		
-		
-		draw_dragon_curve(renderer, i32(frac_counter), 500, 700, 500, 12)
-		draw_dragon_curve(renderer, i32(frac_counter) + 100, 900, 1700, 1500, 8)
 
 		for c, _ in cell_array {
 			mutation_chance: u8 = get_random_Max100()
-			if c.age > u16(50) && mutation_chance < u8(10) {
+			if c.age > u16(500) && mutation_chance < u8(1) {
 				c.dna[4] = get_random_byte() //direction
 				c.bias = get_random_float() //speed	
+				c.dna[5] = get_random_byte() //mutation rate
+				c.dna[6] = get_random_byte() //reproduction rate
+				fmt.println("Mutation!")
 			}
 
 			c.age += 1
 			c.time_since_reproduction += 1
 
+			//wrap the cell position left to right and top to bottom
 			wrap_cell_position(c)
 
-			if c.age > 120 {
+
+		if c.age > REPRODUCE_AGE {
 				c.can_reproduce = true
 			}
 
@@ -236,7 +217,7 @@ main :: proc() {
 					   distance < 200 &&
 					   c.can_reproduce &&
 					   c2.can_reproduce &&
-					   c.time_since_reproduction > 100 &&
+					   c.time_since_reproduction > 1000 &&
 					   c.parent1 != c2 &&
 					   c.parent2 != c2 {
 						c2.time_since_reproduction = 0
@@ -271,11 +252,8 @@ main :: proc() {
 				}
 			}
 
-
-
-
 			//if is growing debug log 
-			if c.is_growing && len(cell_array) < 15 {
+			if c.is_growing && len(cell_array) < 15 && game_counter % 60 == 0{
 				fmt.println("Cell is growing")
 				fmt.println("Cell size: ", c.size)
 				fmt.println("Cell age: ", c.age)
@@ -285,7 +263,7 @@ main :: proc() {
 			}
 
 			map_byte_to_direction := map_byte_to_direction(c.dna[4])
-			bias_strength := c.bias * 2
+			bias_strength := c.bias * BIAS_MULTI
 
 			switch map_byte_to_direction {
 			case "N":
@@ -327,13 +305,13 @@ main :: proc() {
 			}
 
 			if c.size == CELL_SIZE {
-				c.is_growing = false
+				//c.is_growing = false
 			}
 
 			v := get_random_float()
 
 			if c.age > 400 && v < 0.009 {
-				c.is_alive = false
+				//c.is_alive = false
 			}
 		}
 
@@ -444,6 +422,31 @@ map_byte_to_direction :: proc(b: u8) -> string {
 exit :: proc() {
 	fmt.println("Exiting...")
 	os.exit(0)
+}
+
+up_tick: bool = true
+draw_dragon_D:: proc(renderer: ^sdl2.Renderer)
+{
+	
+	if frac_counter == 255 {
+		up_tick = true 
+	}
+
+	if frac_counter == 0{
+		up_tick = false
+
+	}
+
+	if up_tick{
+		frac_counter = frac_counter -1 
+		
+	}else{	
+		frac_counter = frac_counter + 1			
+	}	
+
+	draw_dragon_curve(renderer, i32(frac_counter), 500, 700, 500, 12)
+	draw_dragon_curve(renderer, i32(frac_counter) + 100, 900, 1700, 1500, 8)
+
 }
 
 draw_dragon_curve :: proc(renderer: ^sdl2.Renderer, x0, y0, x1, y1: i32, level: int)
