@@ -7,6 +7,7 @@ import "core:math/rand"
 import "vendor:sdl2"
 import "core:os"
 import "core:unicode/utf8"
+import "base:builtin"
 
 import "core:mem"
 
@@ -25,11 +26,28 @@ BIAS_MULTI :: 3
 REPRODUCE_AGE :: 480
 DEATH_DELAY :: 480
 
+
+abs :: builtin.abs
+min :: builtin.min
+max :: builtin.max
+clamp :: builtin.clamp
+
+
+Color :: struct {
+	a: Vec4, // alpha
+	b: Vec4, // beta
+	g: Vec4, // gamma
+	d: Vec4, // delta
+}
+
+Co := new(Color) 
+
+
 Game :: struct {
 	renderer: ^sdl2.Renderer,
 	keyboard: []u8,
-	time:     i32,
-	dt:       i16,
+	time:     f64,
+	dt:       f64,
 }
 
 //u8 :: byte
@@ -63,6 +81,12 @@ cell_array := make([dynamic]^Cell)
 frac_counter : u8 = 0
 
 main :: proc() {
+	dt := 0.0
+	
+	Co.a = Vec4{255, 0, 0, 255}
+	Co.b = Vec4{0, 255, 0, 255}
+	Co.g = Vec4{0, 0, 255, 255}
+	Co.d = Vec4{255, 255, 255, 255}
 
 	perf_frequency := f64(sdl2.GetPerformanceFrequency())
 	start: f64
@@ -130,17 +154,33 @@ main :: proc() {
 	framStart: u32
 	frameTime: i32
 
+
+	tickrate := 240.0
+	ticktime := 1000.0 / tickrate
+
 	// Create game instance
 	game := Game {
 		renderer = renderer,
-		dt       = frameDelay,
+		time     = get_time(),
+		dt       = ticktime,
 	}
 
+
+	get_time :: proc() -> f64 {
+		return f64(sdl2.GetPerformanceCounter()) * 1000 / f64(sdl2.GetPerformanceFrequency())
+	}
 	
 	game_loop: for {		
 		// Start of game loop, we log the start so we can calculate the time it took to render the frame
 		framStart = sdl2.GetTicks()
-		
+		time := get_time()
+		dt += time - game.time
+		game.time = time
+		game.dt = dt
+		fmt.println("dt: ", dt)
+
+
+
 		// we only want to print the length about 1 time per second so me mod 60
 		if game_counter % 60 == 0 {
 			fmt.println("Length:  ", len(cell_array))
@@ -179,8 +219,20 @@ main :: proc() {
 		
 		//this is the fractal counter, it will go from 0 to 255 and back to 0
 		//this will be used to draw the dragon curve with different colors
-		draw_dragon_D(renderer)
+		draw_dragon_D(game, Co)
 		
+		t := 0.5 * 0.1 * f32(game.dt)
+		fmt.println("t: ", t)
+
+		//smooth color change use clamp 
+		//bounce the color between 0 and 255
+
+		if  up_tick {
+			Co.a.r = clamp(0, 200, u8(t))
+			Co.a.g = clamp(0, 180, u8(t))
+			Co.a.b = clamp(0, 88, u8(t))
+		}
+	
 
 		for c, _ in cell_array {
 			mutation_chance: u8 = get_random_Max100()
@@ -425,7 +477,7 @@ exit :: proc() {
 }
 
 up_tick: bool = true
-draw_dragon_D:: proc(renderer: ^sdl2.Renderer)
+draw_dragon_D:: proc(game: Game, co: ^Color )
 {
 	
 	if frac_counter == 255 {
@@ -444,14 +496,26 @@ draw_dragon_D:: proc(renderer: ^sdl2.Renderer)
 		frac_counter = frac_counter + 1			
 	}	
 
-	draw_dragon_curve(renderer, i32(frac_counter), 500, 700, 500, 12)
-	draw_dragon_curve(renderer, i32(frac_counter) + 100, 900, 1700, 1500, 8)
-
+	//curve 1
+	draw_dragon_curve(game, i32(frac_counter), 500, 700, 500, 12, co)
+	//curve 2
+	draw_dragon_curve(game, i32(frac_counter) + 100, 900, 1700, 1500, 8, co)
 }
 
-draw_dragon_curve :: proc(renderer: ^sdl2.Renderer, x0, y0, x1, y1: i32, level: int)
+
+
+draw_dragon_curve :: proc(game: Game, x0, y0, x1, y1: i32, level: int, co: ^Color, speed: f32 = 1.0)
 {
+
+	renderer := game.renderer
+
 	if level <= 0 {
+
+
+		
+
+		sdl2.SetRenderDrawColor(renderer, co.a.r, co.a.g, co.a.b, 1)
+		
         sdl2.RenderDrawLine(renderer, x0, y0, x1, y1)
         return
     }
@@ -459,6 +523,6 @@ draw_dragon_curve :: proc(renderer: ^sdl2.Renderer, x0, y0, x1, y1: i32, level: 
     xm := (x0 + x1) / 2 + (y1 - y0) / 3
     ym := (y0 + y1) / 2 + (x0 - x1) / 2
 
-    draw_dragon_curve(renderer, x0, y0, xm, ym, level-1)
-    draw_dragon_curve(renderer, x1, y1, xm, ym, level-1)
+    draw_dragon_curve(game, x0, y0, xm, ym, level-1, co)
+    draw_dragon_curve(game, x1, y1, xm, ym, level-1, co)
 }
