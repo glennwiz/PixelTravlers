@@ -22,9 +22,11 @@ import "core:mem"
 
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
 CELL_SIZE :: 15
-BIAS_MULTI :: 3
-REPRODUCE_AGE :: 480
-DEATH_DELAY :: 480
+BIAS_MULTI :: 2
+REPRODUCE_AGE :: 10
+DEATH_DELAY :: 10
+CELL_COUNT :: 1000
+DEATH_AGE :: 10000
 
 
 abs :: builtin.abs
@@ -177,7 +179,7 @@ main :: proc() {
 		dt += time - game.time
 		game.time = time
 		game.dt = dt
-		fmt.println("dt: ", dt)
+		
 
 
 
@@ -221,9 +223,8 @@ main :: proc() {
 		//this will be used to draw the dragon curve with different colors
 		draw_dragon_D(game, Co)
 		
-		t := 0.5 * 0.1 * f32(game.dt)
-		fmt.println("t: ", t)
-
+		t := 0.5 * 0.01 * f32(game.dt)
+		
 		//smooth color change use clamp 
 		//bounce the color between 0 and 255
 
@@ -241,7 +242,7 @@ main :: proc() {
 				c.bias = get_random_float() //speed	
 				c.dna[5] = get_random_byte() //mutation rate
 				c.dna[6] = get_random_byte() //reproduction rate
-				fmt.println("Mutation!")
+				//fmt.println("Mutation!")
 			}
 
 			c.age += 1
@@ -265,7 +266,7 @@ main :: proc() {
 
 					spawn: u8 = get_random_Max100()
 					if spawn < u8(1) &&
-					   len(cell_array) < 100 &&
+					   len(cell_array) < CELL_COUNT &&
 					   distance < 200 &&
 					   c.can_reproduce &&
 					   c2.can_reproduce &&
@@ -357,13 +358,13 @@ main :: proc() {
 			}
 
 			if c.size == CELL_SIZE {
-				//c.is_growing = false
+				c.is_growing = false
 			}
 
 			v := get_random_float()
 
-			if c.age > 400 && v < 0.009 {
-				//c.is_alive = false
+			if c.age > DEATH_AGE && v < 0.009 {
+				c.is_alive = false
 			}
 		}
 
@@ -502,17 +503,12 @@ draw_dragon_D:: proc(game: Game, co: ^Color )
 	draw_dragon_curve(game, i32(frac_counter) + 100, 900, 1700, 1500, 8, co)
 }
 
-
-
 draw_dragon_curve :: proc(game: Game, x0, y0, x1, y1: i32, level: int, co: ^Color, speed: f32 = 1.0)
 {
 
 	renderer := game.renderer
 
 	if level <= 0 {
-
-
-		
 
 		sdl2.SetRenderDrawColor(renderer, co.a.r, co.a.g, co.a.b, 1)
 		
