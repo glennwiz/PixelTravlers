@@ -363,6 +363,8 @@ main :: proc() {
 			}
 			
 
+			//TODO: add a trail to the cell
+
 			if c.is_alive && c.can_reproduce{
 				
 				sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3])
