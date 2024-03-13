@@ -23,7 +23,7 @@ import "core:mem"
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
 CELL_SIZE :: 15
 BIAS_MULTI :: 2
-REPRODUCE_AGE :: 10
+REPRODUCE_AGE :: 900
 DEATH_DELAY :: 10
 CELL_COUNT :: 1000
 DEATH_AGE :: 10000
@@ -76,6 +76,7 @@ Cell :: struct {
 	parent1:                 ^Cell, // Pointer to first parent cell
 	parent2:                 ^Cell, // Pointer to second parent cell
 	dna:                     [8]byte, //dna :8 used atm: [4 byte RGB, 1 byte movement bias, 1byte speed bias, 1byte mutation rate, 1byte repoduction rate, 1byte life span]
+	trail:                   [][2]f16, //trail :[x,y] used to store the trail of the cell
 }
 
 cell_array := make([dynamic]^Cell)
@@ -85,7 +86,7 @@ frac_counter : u8 = 0
 main :: proc() {
 	dt := 0.0
 	
-	Co.a = Vec4{255, 0, 0, 255}
+	Co.a = Vec4{0, 0, 0, 255}
 	Co.b = Vec4{0, 255, 0, 255}
 	Co.g = Vec4{0, 0, 255, 255}
 	Co.d = Vec4{255, 255, 255, 255}
@@ -115,7 +116,7 @@ main :: proc() {
 
 	event: sdl2.Event
 
-	for i := 0; i < 4; i += 1 {
+	for i := 0; i < 6; i += 1 {
 		cell := new(Cell)
 		cell.age = 0
 		cell.size = CELL_SIZE
@@ -217,7 +218,7 @@ main :: proc() {
 
 		//2` = x^2 + c
 		//fractal 
-		sdl2.SetRenderDrawColor(game.renderer, 100, 100, 100, 10)	
+		//sdl2.SetRenderDrawColor(game.renderer, 100, 100, 100, 10)	
 		
 		//this is the fractal counter, it will go from 0 to 255 and back to 0
 		//this will be used to draw the dragon curve with different colors
@@ -252,7 +253,7 @@ main :: proc() {
 			wrap_cell_position(c)
 
 
-		if c.age > REPRODUCE_AGE {
+		if c.age > REPRODUCE_AGE && c.time_since_reproduction > 500{
 				c.can_reproduce = true
 			}
 
@@ -267,16 +268,22 @@ main :: proc() {
 					spawn: u8 = get_random_Max100()
 					if spawn < u8(1) &&
 					   len(cell_array) < CELL_COUNT &&
-					   distance < 200 &&
+					   distance < 100 &&
 					   c.can_reproduce &&
 					   c2.can_reproduce &&
 					   c.time_since_reproduction > 1000 &&
-					   c.parent1 != c2 &&
-					   c.parent2 != c2 {
+					   c.parent1 != c2 && c.parent2 != c2 
+					{
 						c2.time_since_reproduction = 0
 						c2.can_reproduce = false
 						c.can_reproduce = false
 						c.time_since_reproduction = 0
+
+						fmt.println("--------------------------------->Reproduction!")
+						fmt.println("Cell 1 dna: ", c.dna)
+						fmt.println("Cell 2 dna: ", c2.dna)
+						fmt.println("Cell 1 bias: ", c.bias)
+						fmt.println("Cell 2 bias: ", c2.bias)
 
 						//reproduce a new cell
 						child := new(Cell)
@@ -306,7 +313,7 @@ main :: proc() {
 			}
 
 			//if is growing debug log 
-			if c.is_growing && len(cell_array) < 15 && game_counter % 60 == 0{
+			if c.is_growing && len(cell_array) < 15 && game_counter % 60 == 0 {
 				fmt.println("Cell is growing")
 				fmt.println("Cell size: ", c.size)
 				fmt.println("Cell age: ", c.age)
@@ -348,7 +355,22 @@ main :: proc() {
 				h = f32(c.size),
 			}
 
-			if c.is_alive {
+			rect2 := sdl2.Rect {
+				x = i32(c.x),
+				y = i32(c.y),
+				w = i32(c.size),
+				h = i32(c.size),
+			}
+			
+
+			if c.is_alive && c.can_reproduce{
+				
+				sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3])
+				sdl2.RenderFillRect(renderer, &rect2)
+			}
+			else
+			{
+				
 				sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3])
 				sdl2.RenderDrawRectF(game.renderer, &rect)
 			}
