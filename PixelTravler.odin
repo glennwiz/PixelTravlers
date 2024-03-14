@@ -20,19 +20,22 @@ import "core:mem"
     Those who dare to fail miserably can achieve greatly
 */
 
-WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480
-CELL_SIZE :: 15
-BIAS_MULTI :: 2
-REPRODUCE_AGE :: 900
-DEATH_DELAY :: 10
-CELL_COUNT :: 1000
-DEATH_AGE :: 10000
+WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480 //window size 1900, 1100
+CELL_SIZE :: 15		    //size of the cell	
+BIAS_MULTI :: 2         //how much the bias will affect the speed of the cell
+REPRODUCE_AGE :: 500    //what age will they start to reproduce
+DEATH_DELAY :: 60		//the cleanup rate of removing dead cells 60 is ever sec
+CELL_COUNT :: 1000		//how many max cells alive at a time
+DEATH_AGE :: 3000      	//what age will they star to die
+NEEDY_OFFSPRING :: 100  //byte 255 totaly needy
+
+PARENT_MEET :: true     //if true, the parents will meet and the offspring will get a size boost
 
 
 abs :: builtin.abs
 min :: builtin.min
 max :: builtin.max
-clamp :: builtin.clamp
+clamp :: builtin.clamp // https://pkg.odin-lang.org/base/builtin/#clamp
 
 
 Color :: struct {
@@ -42,7 +45,7 @@ Color :: struct {
 	d: Vec4, // delta
 }
 
-Co := new(Color) 
+ColorSet := new(Color) 
 
 
 Game :: struct {
@@ -86,10 +89,10 @@ frac_counter : u8 = 0
 main :: proc() {
 	dt := 0.0
 	
-	Co.a = Vec4{0, 0, 0, 255}
-	Co.b = Vec4{0, 255, 0, 255}
-	Co.g = Vec4{0, 0, 255, 255}
-	Co.d = Vec4{255, 255, 255, 255}
+	ColorSet.a = Vec4{0, 0, 0, 255}
+	ColorSet.b = Vec4{0, 255, 0, 255}
+	ColorSet.g = Vec4{0, 0, 255, 255}
+	ColorSet.d = Vec4{255, 255, 255, 255}
 
 	perf_frequency := f64(sdl2.GetPerformanceFrequency())
 	start: f64
@@ -124,7 +127,7 @@ main :: proc() {
 		cell.is_alive = true
 		cell.can_reproduce = false
 		cell.is_growing = false
-		cell.time_since_reproduction = 1000
+		cell.time_since_reproduction = 0
 		cell.x = WINDOW_WIDTH / 2 - (CELL_SIZE / 2)
 		cell.y = WINDOW_HEIGHT / 2 - (CELL_SIZE / 2)
 		cell.dna = [8]byte {
@@ -157,7 +160,6 @@ main :: proc() {
 	framStart: u32
 	frameTime: i32
 
-
 	tickrate := 240.0
 	ticktime := 1000.0 / tickrate
 
@@ -168,12 +170,12 @@ main :: proc() {
 		dt       = ticktime,
 	}
 
-
 	get_time :: proc() -> f64 {
 		return f64(sdl2.GetPerformanceCounter()) * 1000 / f64(sdl2.GetPerformanceFrequency())
 	}
 	
-	game_loop: for {		
+	game_loop: for {	
+
 		// Start of game loop, we log the start so we can calculate the time it took to render the frame
 		framStart = sdl2.GetTicks()
 		time := get_time()
@@ -181,9 +183,6 @@ main :: proc() {
 		game.time = time
 		game.dt = dt
 		
-
-
-
 		// we only want to print the length about 1 time per second so me mod 60
 		if game_counter % 60 == 0 {
 			fmt.println("Length:  ", len(cell_array))
@@ -222,27 +221,31 @@ main :: proc() {
 		
 		//this is the fractal counter, it will go from 0 to 255 and back to 0
 		//this will be used to draw the dragon curve with different colors
-		draw_dragon_D(game, Co)
+		draw_dragon_D(game, ColorSet)
 		
-		t := 0.5 * 0.01 * f32(game.dt)
-		
-		//smooth color change use clamp 
-		//bounce the color between 0 and 255
+			
+	
 
+		// some color changing stuff
+		t := 0.5 * 0.01 * f32(game.dt)
+		//fmt.println("t: ", t)
+		//fmt.println("game.dt: ", game.dt)
+
+		//clamp returns a value v clamped between minimum and maximum. This is calculated as the following: minimum if v < minimum else maximum if v > maximum else v.
 		if  up_tick {
-			Co.a.r = clamp(0, 200, u8(t))
-			Co.a.g = clamp(0, 180, u8(t))
-			Co.a.b = clamp(0, 88, u8(t))
+			ColorSet.a.r = clamp(0, 200, u8(t))
+			ColorSet.a.g = clamp(0, 180, u8(t))
+			ColorSet.a.b = clamp(0, 88, u8(t))
 		}
 	
 
 		for c, _ in cell_array {
 			mutation_chance: u8 = get_random_Max100()
 			if c.age > u16(500) && mutation_chance < u8(1) {
-				c.dna[4] = get_random_byte() //direction
-				c.bias = get_random_float() //speed	
-				c.dna[5] = get_random_byte() //mutation rate
-				c.dna[6] = get_random_byte() //reproduction rate
+				c.dna[4] = get_random_byte()  	//direction
+				c.bias   = get_random_float() 	//speed	
+				c.dna[5] = get_random_byte()  	//mutation rate
+				c.dna[6] = get_random_byte()  	//reproduction rate
 				//fmt.println("Mutation!")
 			}
 
@@ -266,13 +269,13 @@ main :: proc() {
 					)
 
 					spawn: u8 = get_random_Max100()
-					if spawn < u8(1) &&
+					if spawn < u8(10) &&
 					   len(cell_array) < CELL_COUNT &&
 					   distance < 100 &&
 					   c.can_reproduce &&
 					   c2.can_reproduce &&
 					   c.time_since_reproduction > 1000 &&
-					   c.parent1 != c2 && c.parent2 != c2 
+					   c.parent1 != c2 && c.parent2 != c2     //prevent inbreeding, maybe do somthing other when meeting a parent, like opose movement, or maybe +1 to the szie of the cell
 					{
 						c2.time_since_reproduction = 0
 						c2.can_reproduce = false
@@ -294,6 +297,8 @@ main :: proc() {
 						child.y = c.y
 						child.time_since_reproduction = 0
 						child.size = 1
+						child.parent1 = c
+						child.parent2 = c2
 						//todo: maybe inherit the color from the parents more
 						child.dna = [8]byte {
 							get_random_byte(),
@@ -308,6 +313,21 @@ main :: proc() {
 						child.bias = get_random_float()
 						append(&cell_array, child)
 						c.time_since_reproduction = 0
+					}
+
+				if spawn < u8(10) && PARENT_MEET == true && !c.can_reproduce == true && distance < 100 && (c.parent1 == c2 || c.parent2 == c2)  {
+						
+						v := get_random_byte()
+						if v < NEEDY_OFFSPRING
+						{
+							c.size += 1
+							//c2.size += 1
+							c.bias *= -1
+							c2.bias *= -1
+	
+							fmt.println(PARENT_MEET)
+							fmt.println("Parent meeting!----------------------------------->|§§§§§||||§§§§§§")
+						}
 					}
 				}
 			}
@@ -370,7 +390,8 @@ main :: proc() {
 				sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3])
 				sdl2.RenderFillRect(renderer, &rect2)
 			}
-			else
+			
+			if (c.is_alive && !c.can_reproduce)
 			{
 				
 				sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3])
@@ -388,6 +409,12 @@ main :: proc() {
 			v := get_random_float()
 
 			if c.age > DEATH_AGE && v < 0.009 {
+				fmt.println("Cell died of old age!----------------------------------->|§§§!!!!!§§||||§§!!!!§§§")
+				fmt.println("Cell age: ", c.age)
+				fmt.println("Cell time_since_reproduction: ", c.time_since_reproduction)
+				fmt.println("Cell dna: ", c.dna)
+				fmt.println("Cell bias: ", c.bias)
+				fmt.println("Cell size: ", c.size)
 				c.is_alive = false
 			}
 		}
