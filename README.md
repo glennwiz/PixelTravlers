@@ -1,5 +1,8 @@
 # PixelTravlers
 
+![PixelTravlers_LwNTE56JQa](https://github.com/glennwiz/PixelTravlers/assets/195927/a74660cf-812e-414d-be06-c577c44e75c8)
+
+
 ![WindowsTerminal_knMXhSjZlV](https://github.com/glennwiz/PixelTravlers/assets/195927/2f6f6635-2eb5-43a2-b7c5-ba14851a27af)
 
 ![image](https://github.com/glennwiz/PixelTravlers/assets/195927/ca2fb452-8772-47ca-88d1-fbd8446374a0)
