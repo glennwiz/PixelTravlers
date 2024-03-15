@@ -21,15 +21,19 @@ import "core:mem"
 */
 
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480 //window size 1900, 1100
-CELL_SIZE :: 15		    //size of the cell	
-BIAS_MULTI :: 2         //how much the bias will affect the speed of the cell
-REPRODUCE_AGE :: 500    //what age will they start to reproduce
-DEATH_DELAY :: 60		//the cleanup rate of removing dead cells 60 is ever sec
-CELL_COUNT :: 1000		//how many max cells alive at a time
-DEATH_AGE :: 3000      	//what age will they star to die
-NEEDY_OFFSPRING :: 100  //byte 255 totaly needy
+CELL_SIZE :: 15		    	//size of the cell	
+BIAS_MULTI :: 2         	//how much the bias will affect the speed of the cell
+REPRODUCE_AGE :: 500    	//what age will they start to reproduce
+DEATH_DELAY :: 60			//the cleanup rate of removing dead cells 60 is ever sec
+CELL_COUNT :: 1000			//how many max cells alive at a time
+DEATH_AGE :: 3000      		//what age will they star to die
+NEEDY_OFFSPRING :: 100  	//byte 255 totaly needy
 
-PARENT_MEET :: true     //if true, the parents will meet and the offspring will get a size boost
+
+STARTING_CELLS :: 20		//how many cells will start
+SPAWN_RATE :: 100       	//how often the cells will spawn
+REPRODUCE_DISTANCE :: 10	//how close the cells need to be to reproduce
+PARENT_MEET :: true     	//if true, the parents will meet and the offspring will get a size boost
 
 
 abs :: builtin.abs
@@ -119,7 +123,7 @@ main :: proc() {
 
 	event: sdl2.Event
 
-	for i := 0; i < 6; i += 1 {
+	for i := 0; i < STARTING_CELLS; i += 1 {
 		cell := new(Cell)
 		cell.age = 0
 		cell.size = CELL_SIZE
@@ -255,8 +259,8 @@ main :: proc() {
 			//wrap the cell position left to right and top to bottom
 			wrap_cell_position(c)
 
-
-		if c.age > REPRODUCE_AGE && c.time_since_reproduction > 500{
+		x := get_random_byte()
+		if c.age > REPRODUCE_AGE && c.time_since_reproduction > 500 && x < 1{
 				c.can_reproduce = true
 			}
 
@@ -269,9 +273,9 @@ main :: proc() {
 					)
 
 					spawn: u8 = get_random_Max100()
-					if spawn < u8(10) &&
+					if spawn < u8(SPAWN_RATE) &&
 					   len(cell_array) < CELL_COUNT &&
-					   distance < 100 &&
+					   distance < REPRODUCE_DISTANCE &&
 					   c.can_reproduce &&
 					   c2.can_reproduce &&
 					   c.time_since_reproduction > 1000 &&
@@ -325,8 +329,11 @@ main :: proc() {
 							c.bias *= -1
 							c2.bias *= -1
 	
-							fmt.println(PARENT_MEET)
-							fmt.println("Parent meeting!----------------------------------->|§§§§§||||§§§§§§")
+							//fmt.println(PARENT_MEET)
+
+							if game_counter < 100 {
+								fmt.println("Parent meeting!----------------------------------->|§§§§§||||§§§§§§")
+							}							
 						}
 					}
 				}
@@ -380,8 +387,7 @@ main :: proc() {
 				y = i32(c.y),
 				w = i32(c.size),
 				h = i32(c.size),
-			}
-			
+			}			
 
 			//TODO: add a trail to the cell
 
@@ -392,8 +398,7 @@ main :: proc() {
 			}
 			
 			if (c.is_alive && !c.can_reproduce)
-			{
-				
+			{				
 				sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3])
 				sdl2.RenderDrawRectF(game.renderer, &rect)
 			}
