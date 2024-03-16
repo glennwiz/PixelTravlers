@@ -93,15 +93,15 @@ frac_counter : u8 = 0
 main :: proc() {
 	dt := 0.0
 	
-	ColorSet.a = Vec4{0, 0, 0, 255}
-	ColorSet.b = Vec4{0, 255, 0, 255}
-	ColorSet.g = Vec4{0, 0, 255, 255}
-	ColorSet.d = Vec4{255, 255, 255, 255}
+	ColorSet.a = Vec4{0, 0, 0, 255}       //black
+	ColorSet.b = Vec4{0, 255, 0, 255}     //green
+	ColorSet.g = Vec4{0, 0, 255, 255}     //blue 
+	ColorSet.d = Vec4{255, 255, 255, 255} //white
 
 	perf_frequency := f64(sdl2.GetPerformanceFrequency())
 	start: f64
 	end: f64
-	fmt.println("s-----------------------------------------")
+	fmt.println("s---------------------------THE f ING START, Lets try an trigger the spell check nazies--------------")
 
 	assert(sdl2.Init(sdl2.INIT_VIDEO) == 0, sdl2.GetErrorString())
 	defer sdl2.Quit()
@@ -225,21 +225,30 @@ main :: proc() {
 		
 		//this is the fractal counter, it will go from 0 to 255 and back to 0
 		//this will be used to draw the dragon curve with different colors
+		//TODO: how to bounce the counter back and forth????
 		draw_dragon_D(game, ColorSet)
 		
 			
 	
 
 		// some color changing stuff
-		t := 0.5 * 0.01 * f32(game.dt)
+		rolling_color_variable := 0.5 * 0.01 * f32(game.dt) //this is rolling because we * with the game.dt
+		//game.dt is the time it took to render the frame
+		//this mean we can controle the update speed of the color change by looking at the game.dt,
+		//if the game.dt is high, the color will change faster, if the game.dt is low, the color will change slower
+		//so for example, if the game.dt is 0.1, the color will change 0.5 * 0.01 * 0.1 = 0.005
+
+		//what this gives us is a smooth color change, and we can controle the speed of the color change by looking at the game.dt
+
+
 		//fmt.println("t: ", t)
 		//fmt.println("game.dt: ", game.dt)
 
 		//clamp returns a value v clamped between minimum and maximum. This is calculated as the following: minimum if v < minimum else maximum if v > maximum else v.
 		if  up_tick {
-			ColorSet.a.r = clamp(0, 200, u8(t))
-			ColorSet.a.g = clamp(0, 180, u8(t))
-			ColorSet.a.b = clamp(0, 88, u8(t))
+			ColorSet.a.r = clamp(0, 200, u8(rolling_color_variable))
+			ColorSet.a.g = clamp(0, 180, u8(rolling_color_variable))
+			ColorSet.a.b = clamp(0, 88, u8(rolling_color_variable))
 		}
 	
 
