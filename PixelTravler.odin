@@ -28,7 +28,7 @@ DEATH_DELAY :: 60			//the cleanup rate of removing dead cells 60 is ever sec
 CELL_COUNT :: 1000			//how many max cells alive at a time
 DEATH_AGE :: 3000      		//what age will they star to die
 NEEDY_OFFSPRING :: 100  	//byte 255 totaly needy
-
+REPRODUCE_TIME_SINCE :: 1000//how long since last reproduction	
 
 STARTING_CELLS :: 20		//how many cells will start
 SPAWN_RATE :: 100       	//how often the cells will spawn
@@ -86,9 +86,10 @@ Cell :: struct {
 	trail:                   [][2]f16, //trail :[x,y] used to store the trail of the cell
 }
 
-cell_array := make([dynamic]^Cell)
 
+cell_array := make([dynamic]^Cell)
 frac_counter : u8 = 0
+
 
 main :: proc() {
 	dt := 0.0
@@ -220,37 +221,20 @@ main :: proc() {
 		draw_gradient(game.renderer)
 
 		//2` = x^2 + c
-		//fractal 
-		//sdl2.SetRenderDrawColor(game.renderer, 100, 100, 100, 10)	
-		
 		//this is the fractal counter, it will go from 0 to 255 and back to 0
 		//this will be used to draw the dragon curve with different colors
 		//TODO: how to bounce the counter back and forth????
 		draw_dragon_D(game, ColorSet)
 		
-			
-	
-
-		// some color changing stuff
-		rolling_color_variable := 0.5 * 0.01 * f32(game.dt) //this is rolling because we * with the game.dt
-		//game.dt is the time it took to render the frame
-		//this mean we can controle the update speed of the color change by looking at the game.dt,
-		//if the game.dt is high, the color will change faster, if the game.dt is low, the color will change slower
-		//so for example, if the game.dt is 0.1, the color will change 0.5 * 0.01 * 0.1 = 0.005
-
-		//what this gives us is a smooth color change, and we can controle the speed of the color change by looking at the game.dt
-
-
-		//fmt.println("t: ", t)
-		//fmt.println("game.dt: ", game.dt)
-
+		//some color changing stuff
+		rolling_color_variable := 0.5 * 0.01 * f32(game.dt) 
+		
 		//clamp returns a value v clamped between minimum and maximum. This is calculated as the following: minimum if v < minimum else maximum if v > maximum else v.
 		if  up_tick {
 			ColorSet.a.r = clamp(0, 200, u8(rolling_color_variable))
 			ColorSet.a.g = clamp(0, 180, u8(rolling_color_variable))
 			ColorSet.a.b = clamp(0, 88, u8(rolling_color_variable))
 		}
-	
 
 		for c, _ in cell_array {
 			mutation_chance: u8 = get_random_Max100()
@@ -259,7 +243,6 @@ main :: proc() {
 				c.bias   = get_random_float() 	//speed	
 				c.dna[5] = get_random_byte()  	//mutation rate
 				c.dna[6] = get_random_byte()  	//reproduction rate
-				//fmt.println("Mutation!")
 			}
 
 			c.age += 1
@@ -268,9 +251,10 @@ main :: proc() {
 			//wrap the cell position left to right and top to bottom
 			wrap_cell_position(c)
 
-		x := get_random_byte()
-		if c.age > REPRODUCE_AGE && c.time_since_reproduction > 500 && x < 1{
-				c.can_reproduce = true
+			xWildCard := get_random_byte()
+			if c.age > REPRODUCE_AGE && c.time_since_reproduction > 500 && xWildCard < 1
+			{
+					c.can_reproduce = true
 			}
 
 			// if two cells are close to each other, they can reproduce
@@ -287,7 +271,7 @@ main :: proc() {
 					   distance < REPRODUCE_DISTANCE &&
 					   c.can_reproduce &&
 					   c2.can_reproduce &&
-					   c.time_since_reproduction > 1000 &&
+					   c.time_since_reproduction > REPRODUCE_TIME_SINCE &&
 					   c.parent1 != c2 && c.parent2 != c2     //prevent inbreeding, maybe do somthing other when meeting a parent, like opose movement, or maybe +1 to the szie of the cell
 					{
 						c2.time_since_reproduction = 0
@@ -312,6 +296,7 @@ main :: proc() {
 						child.size = 1
 						child.parent1 = c
 						child.parent2 = c2
+						
 						//todo: maybe inherit the color from the parents more
 						child.dna = [8]byte {
 							get_random_byte(),
@@ -323,14 +308,16 @@ main :: proc() {
 							0,
 							0,
 						}
+
 						child.bias = get_random_float()
 						append(&cell_array, child)
 						c.time_since_reproduction = 0
 					}
 
-				if spawn < u8(10) && PARENT_MEET == true && !c.can_reproduce == true && distance < 100 && (c.parent1 == c2 || c.parent2 == c2)  {
-						
+					if spawn < u8(10) && PARENT_MEET == true && !c.can_reproduce == true && distance < 100 && (c.parent1 == c2 || c.parent2 == c2)  
+					{						
 						v := get_random_byte()
+						
 						if v < NEEDY_OFFSPRING
 						{
 							c.size += 1
