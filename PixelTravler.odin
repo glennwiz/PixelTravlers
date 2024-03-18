@@ -8,6 +8,10 @@ import "vendor:sdl2"
 import "core:os"
 import "core:unicode/utf8"
 import "base:builtin"
+import "core:image/png"
+import SDL_Image "vendor:sdl2/image"
+import SDL "vendor:sdl2"
+
 
 import "core:mem"
 
@@ -21,20 +25,22 @@ import "core:mem"
 */
 
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480 //window size 1900, 1100
-CELL_SIZE :: 15		    	//size of the cell	
-BIAS_MULTI :: 2         	//how much the bias will affect the speed of the cell
-REPRODUCE_AGE :: 500    	//what age will they start to reproduce
-DEATH_DELAY :: 60			//the cleanup rate of removing dead cells 60 is ever sec
-CELL_COUNT :: 1000			//how many max cells alive at a time
-DEATH_AGE :: 3000      		//what age will they star to die
-NEEDY_OFFSPRING :: 100  	//byte 255 totaly needy
-REPRODUCE_TIME_SINCE :: 1000//how long since last reproduction	
+CELL_SIZE :: 45		    		//size of the cell	
+BIAS_MULTI :: 2         		//how much the bias will affect the speed of the cell
+REPRODUCE_AGE :: 500    		//what age will they start to reproduce
+DEATH_DELAY :: 60				//the cleanup rate of removing dead cells 60 is ever sec
+CELL_COUNT :: 1000				//how many max cells alive at a time
+DEATH_AGE :: 3000      			//what age will they star to die
+NEEDY_OFFSPRING :: 100  		//byte 255 totaly needy
+REPRODUCE_TIME_SINCE :: 1000	//how long since last reproduction	
 
-STARTING_CELLS :: 20		//how many cells will start
-SPAWN_RATE :: 100       	//how often the cells will spawn
-REPRODUCE_DISTANCE :: 10	//how close the cells need to be to reproduce
-PARENT_MEET :: true     	//if true, the parents will meet and the offspring will get a size boost
+STARTING_CELLS :: 20			//how many cells will start
+SPAWN_RATE :: 100       		//how often the cells will spawn
+REPRODUCE_DISTANCE :: 10		//how close the cells need to be to reproduce
+PARENT_MEET :: true     		//if true, the parents will meet and the offspring will get a size boost
 
+USE_SDL2_IMAGE :: #config(USE_SDL2_IMAGE, false)
+ODIN_LOGO_PATH :: "logo-slim.png"
 
 abs :: builtin.abs
 min :: builtin.min
@@ -84,6 +90,7 @@ Cell :: struct {
 	parent2:                 ^Cell, // Pointer to second parent cell
 	dna:                     [8]byte, //dna :8 used atm: [4 byte RGB, 1 byte movement bias, 1byte speed bias, 1byte mutation rate, 1byte repoduction rate, 1byte life span]
 	trail:                   [][2]f16, //trail :[x,y] used to store the trail of the cell
+	tex: ^SDL.Texture
 }
 
 
@@ -102,9 +109,9 @@ main :: proc() {
 	perf_frequency := f64(sdl2.GetPerformanceFrequency())
 	start: f64
 	end: f64
-	fmt.println("s---------------------------THE f ING START, Lets try an trigger the spell check nazies--------------")
 
 	assert(sdl2.Init(sdl2.INIT_VIDEO) == 0, sdl2.GetErrorString())
+	assert(SDL_Image.Init(SDL_Image.INIT_PNG) != nil, SDL.GetErrorString())
 	defer sdl2.Quit()
 
 	window := sdl2.CreateWindow(
@@ -123,6 +130,38 @@ main :: proc() {
 	defer sdl2.DestroyRenderer(renderer)
 
 	event: sdl2.Event
+
+	game_counter := 0
+	movement_counter := 0
+	
+
+	// frame counter
+	fps: u8 = 60
+	frameDelay: i16 = i16(1000) / i16(fps)
+
+	framStart: u32
+	frameTime: i32
+
+	tickrate := 240.0
+	ticktime := 1000.0 / tickrate
+
+	// Create game instance
+	game := Game {
+		renderer = renderer,
+		time     = get_time(),
+		dt       = ticktime,
+	}
+
+	player_texture := SDL_Image.LoadTexture(game.renderer, "cell_og.png")
+	assert(player_texture != nil, SDL.GetErrorString())
+
+	destination := SDL.Rect{x = 20, y = WINDOW_HEIGHT / 2}
+	SDL.QueryTexture(player_texture, nil, nil, &destination.w, &destination.h)
+	//SDL.QueryTexture(player_texture, nil, nil, &destination.w, &destination.h)
+
+	get_time :: proc() -> f64 {
+		return f64(sdl2.GetPerformanceCounter()) * 1000 / f64(sdl2.GetPerformanceFrequency())
+	}
 
 	for i := 0; i < STARTING_CELLS; i += 1 {
 		cell := new(Cell)
@@ -150,33 +189,9 @@ main :: proc() {
 		direction := get_random_byte()
 		cell.dna[4] = direction
 		cell.bias = get_random_float()
+		cell.tex = SDL_Image.LoadTexture(renderer, "cell_og.png")
 
 		append(&cell_array, cell)
-	}
-
-	game_counter := 0
-	movement_counter := 0
-	r := 0
-
-	// frame counter
-	fps: u8 = 60
-	frameDelay: i16 = i16(1000) / i16(fps)
-
-	framStart: u32
-	frameTime: i32
-
-	tickrate := 240.0
-	ticktime := 1000.0 / tickrate
-
-	// Create game instance
-	game := Game {
-		renderer = renderer,
-		time     = get_time(),
-		dt       = ticktime,
-	}
-
-	get_time :: proc() -> f64 {
-		return f64(sdl2.GetPerformanceCounter()) * 1000 / f64(sdl2.GetPerformanceFrequency())
 	}
 	
 	game_loop: for {	
@@ -254,7 +269,7 @@ main :: proc() {
 			xWildCard := get_random_byte()
 			if c.age > REPRODUCE_AGE && c.time_since_reproduction > 500 && xWildCard < 1
 			{
-					c.can_reproduce = true
+				c.can_reproduce = true
 			}
 
 			// if two cells are close to each other, they can reproduce
@@ -294,6 +309,7 @@ main :: proc() {
 						child.y = c.y
 						child.time_since_reproduction = 0
 						child.size = 1
+						child.tex = SDL_Image.LoadTexture(renderer, "cell_ch.png")
 						child.parent1 = c
 						child.parent2 = c2
 						
@@ -386,17 +402,22 @@ main :: proc() {
 			}			
 
 			//TODO: add a trail to the cell
+			//TODO: lets render a sprite instead of a rect
+			
+			if c.is_alive && c.can_reproduce{				
+				SDL.RenderCopy(game.renderer, c.tex, nil, &rect2)
 
-			if c.is_alive && c.can_reproduce{
-				
-				sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3])
-				sdl2.RenderFillRect(renderer, &rect2)
+
+				//sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3])
+				//sdl2.RenderFillRect(renderer, &rect2)
 			}
 			
 			if (c.is_alive && !c.can_reproduce)
 			{				
-				sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3])
-				sdl2.RenderDrawRectF(game.renderer, &rect)
+				//sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3])
+				//sdl2.RenderDrawRectF(game.renderer, &rect)
+
+				SDL.RenderCopy(game.renderer, c.tex, nil, &rect2)
 			}
 
 			if game_counter % 10 == 0 && c.size < CELL_SIZE {
@@ -421,7 +442,7 @@ main :: proc() {
 		}
 
 		sdl2.RenderPresent(game.renderer)
-
+		SDL.RenderClear(game.renderer)
 		if sdl2.PollEvent(&event) {
 			if event.type == sdl2.EventType.QUIT {
 				break game_loop
