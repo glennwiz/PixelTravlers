@@ -25,19 +25,19 @@ import "core:mem"
 */
 
 WINDOW_WIDTH, WINDOW_HEIGHT :: 640, 480 //window size 1900, 1100
-CELL_SIZE :: 45		    		//size of the cell	
-BIAS_MULTI :: 2         		//how much the bias will affect the speed of the cell
-REPRODUCE_AGE :: 500    		//what age will they start to reproduce
+CELL_SIZE :: 45					//size of the cell	
+BIAS_MULTI :: 2 				//how much the bias will affect the speed of the cell
+REPRODUCE_AGE :: 500			//what age will they start to reproduce
 DEATH_DELAY :: 60				//the cleanup rate of removing dead cells 60 is ever sec
 CELL_COUNT :: 1000				//how many max cells alive at a time
-DEATH_AGE :: 3000      			//what age will they star to die
+DEATH_AGE :: 3000				//what age will they star to die
 NEEDY_OFFSPRING :: 100  		//byte 255 totaly needy
-REPRODUCE_TIME_SINCE :: 1000	//how long since last reproduction	
+REPRODUCE_TIME_SINCE :: 500		//how long since last reproduction	
 
 STARTING_CELLS :: 20			//how many cells will start
-SPAWN_RATE :: 100       		//how often the cells will spawn
+SPAWN_RATE :: 100 				//how often the cells will spawn
 REPRODUCE_DISTANCE :: 10		//how close the cells need to be to reproduce
-PARENT_MEET :: true     		//if true, the parents will meet and the offspring will get a size boost
+PARENT_MEET :: true				//if true, the parents will meet and the offspring will get a size boost
 
 USE_SDL2_IMAGE :: #config(USE_SDL2_IMAGE, false)
 ODIN_LOGO_PATH :: "logo-slim.png"
@@ -55,8 +55,7 @@ Color :: struct {
 	d: Vec4, // delta
 }
 
-ColorSet := new(Color) 
-
+ColorSet := new(Color)
 
 Game :: struct {
 	renderer: ^sdl2.Renderer,
@@ -92,7 +91,6 @@ Cell :: struct {
 	trail:                   [][2]f16, //trail :[x,y] used to store the trail of the cell
 	tex: ^SDL.Texture
 }
-
 
 cell_array := make([dynamic]^Cell)
 frac_counter : u8 = 0
@@ -210,21 +208,15 @@ main :: proc() {
 
 		//every N game ticks, we will remove the dead cells from the array
 		if game_counter % DEATH_DELAY == 0 {
-
-			//create a temp array to hold the state of the current array
-			dyn_copy := make([dynamic]^Cell, len(cell_array), cap(cell_array))
-			defer delete(dyn_copy)
-
-			//copy the array to a temp array
-			copy(dyn_copy[:], cell_array[:])
-
-			//clear the current array
-			cell_array = make([dynamic]^Cell)
-
-			//moving the alive cells to the new temp array
-			for i := 0; i < len(dyn_copy); i += 1 {
-				if dyn_copy[i].is_alive {
-					append(&cell_array, dyn_copy[i])
+			
+			alive_count := 0
+			for i := 0; i < len(cell_array); i += 1 {
+				if cell_array[i].is_alive {
+					if i != alive_count {
+						// Swap the alive cell to the 'alive_count' position if it's not already there
+						cell_array[alive_count], cell_array[i] = cell_array[i], cell_array[alive_count]
+					}
+					alive_count += 1
 				}
 			}
 		}
@@ -254,10 +246,10 @@ main :: proc() {
 		for c, _ in cell_array {
 			mutation_chance: u8 = get_random_Max100()
 			if c.age > u16(500) && mutation_chance < u8(1) {
-				c.dna[4] = get_random_byte()  	//direction
-				c.bias   = get_random_float() 	//speed	
+				c.dna[4] = get_random_byte()  	//direction				
 				c.dna[5] = get_random_byte()  	//mutation rate
 				c.dna[6] = get_random_byte()  	//reproduction rate
+				c.bias   = get_random_float() 	//speed	
 			}
 
 			c.age += 1
@@ -334,7 +326,7 @@ main :: proc() {
 					{						
 						v := get_random_byte()
 						
-						if v < NEEDY_OFFSPRING
+						if get_random_byte() < NEEDY_OFFSPRING
 						{
 							c.size += 1
 							//c2.size += 1
@@ -408,14 +400,14 @@ main :: proc() {
 				SDL.RenderCopy(game.renderer, c.tex, nil, &rect2)
 
 
-				//sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3])
-				//sdl2.RenderFillRect(renderer, &rect2)
+				sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3])
+				sdl2.RenderFillRect(renderer, &rect2)
 			}
 			
 			if (c.is_alive && !c.can_reproduce)
 			{				
-				//sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3])
-				//sdl2.RenderDrawRectF(game.renderer, &rect)
+				sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3])
+				sdl2.RenderDrawRectF(game.renderer, &rect)
 
 				SDL.RenderCopy(game.renderer, c.tex, nil, &rect2)
 			}
