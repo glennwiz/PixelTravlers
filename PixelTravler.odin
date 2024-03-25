@@ -10,8 +10,6 @@ import "core:unicode/utf8"
 import "base:builtin"
 import "core:image/png"
 import SDL_Image "vendor:sdl2/image"
-import SDL "vendor:sdl2"
-
 
 import "core:mem"
 
@@ -89,7 +87,7 @@ Cell :: struct {
 	parent2:                 ^Cell, // Pointer to second parent cell
 	dna:                     [8]byte, //dna :8 used atm: [4 byte RGB, 1 byte movement bias, 1byte speed bias, 1byte mutation rate, 1byte repoduction rate, 1byte life span]
 	trail:                   [][2]f16, //trail :[x,y] used to store the trail of the cell
-	tex: ^SDL.Texture
+	tex: ^sdl2.Texture
 }
 
 cell_array := make([dynamic]^Cell)
@@ -109,7 +107,7 @@ main :: proc() {
 	end: f64
 
 	assert(sdl2.Init(sdl2.INIT_VIDEO) == 0, sdl2.GetErrorString())
-	assert(SDL_Image.Init(SDL_Image.INIT_PNG) != nil, SDL.GetErrorString())
+	assert(SDL_Image.Init(SDL_Image.INIT_PNG) != nil, sdl2.GetErrorString())
 	defer sdl2.Quit()
 
 	window := sdl2.CreateWindow(
@@ -151,11 +149,11 @@ main :: proc() {
 	}
 
 	player_texture := SDL_Image.LoadTexture(game.renderer, "cell_og.png")
-	assert(player_texture != nil, SDL.GetErrorString())
+	assert(player_texture != nil, sdl2.GetErrorString())
 
-	destination := SDL.Rect{x = 20, y = WINDOW_HEIGHT / 2}
-	SDL.QueryTexture(player_texture, nil, nil, &destination.w, &destination.h)
-	//SDL.QueryTexture(player_texture, nil, nil, &destination.w, &destination.h)
+	destination := sdl2.Rect{x = 20, y = WINDOW_HEIGHT / 2}
+	sdl2.QueryTexture(player_texture, nil, nil, &destination.w, &destination.h)
+	//sdl2.QueryTexture(player_texture, nil, nil, &destination.w, &destination.h)
 
 	get_time :: proc() -> f64 {
 		return f64(sdl2.GetPerformanceCounter()) * 1000 / f64(sdl2.GetPerformanceFrequency())
@@ -397,7 +395,7 @@ main :: proc() {
 			//TODO: lets render a sprite instead of a rect
 			
 			if c.is_alive && c.can_reproduce{				
-				SDL.RenderCopy(game.renderer, c.tex, nil, &rect2)
+				sdl2.RenderCopy(game.renderer, c.tex, nil, &rect2)
 
 
 				sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3])
@@ -409,7 +407,7 @@ main :: proc() {
 				sdl2.SetRenderDrawColor(game.renderer, c.dna[0], c.dna[1], c.dna[2], c.dna[3])
 				sdl2.RenderDrawRectF(game.renderer, &rect)
 
-				SDL.RenderCopy(game.renderer, c.tex, nil, &rect2)
+				sdl2.RenderCopy(game.renderer, c.tex, nil, &rect2)
 			}
 
 			if game_counter % 10 == 0 && c.size < CELL_SIZE {
@@ -434,7 +432,7 @@ main :: proc() {
 		}
 
 		sdl2.RenderPresent(game.renderer)
-		SDL.RenderClear(game.renderer)
+		sdl2.RenderClear(game.renderer)
 		if sdl2.PollEvent(&event) {
 			if event.type == sdl2.EventType.QUIT {
 				break game_loop
